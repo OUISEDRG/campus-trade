@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.demo.mapper.ChatMessageMapper">
+    
+    <select id="selectChatSessions" resultType="com.example.demo.dto.ChatSessionDTO">
+        SELECT 
+            IF(sender_id = #{userId}, receiver_id, sender_id) AS targetUserId,
+            MAX(create_time) AS lastMessageTime,
+            SUM(CASE WHEN receiver_id = #{userId} AND status = 0 THEN 1 ELSE 0 END) AS unreadCount
+        FROM chat_messages 
+        WHERE sender_id = #{userId} OR receiver_id = #{userId}
+        GROUP BY targetUserId
+        ORDER BY lastMessageTime DESC
+    </select>
+    
+    <select id="selectLastMessage" resultType="com.example.demo.entity.ChatMessage">
+        SELECT * FROM chat_messages 
+        WHERE (sender_id = #{userId} AND receiver_id = #{targetUserId})
+           OR (sender_id = #{targetUserId} AND receiver_id = #{userId})
+        ORDER BY create_time DESC 
+        LIMIT 1
+    </select>
+    
+    <update id="batchMarkAsRead">
+        UPDATE chat_messages 
+        SET status = 1 
+        WHERE receiver_id = #{userId} 
+        AND status = 0
+        <if test="senderIds != null and senderIds.size() > 0">
+            AND sender_id IN
+            <foreach collection="senderIds" item="senderId" open="(" separator="," close=")">
+                #{senderId}
+            </foreach>
+        </if>
+    </update>
+    
+</mapper>

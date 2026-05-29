@@ -1,0 +1,59 @@
+### 测试用户登录
+POST http://localhost:8081/user/login
+Content-Type: application/json
+
+{
+  "username": "testuser",
+  "password": "123456"
+}
+
+### 测试错误密码
+POST http://localhost:8081/user/login
+Content-Type: application/json
+
+{
+  "username": "testuser",
+  "password": "wrongpassword"
+}
+
+### 测试不存在的账号
+POST http://localhost:8081/user/login
+Content-Type: application/json
+
+{
+  "username": "nonexistent",
+  "password": "123456"
+}
+
+### 获取用户列表
+GET http://localhost:8081/user/list
+
+### 测试用户注册
+POST http://localhost:8081/user/register
+Content-Type: application/json
+
+{
+  "username": "newuser",
+  "password": "123456",
+  "nickname": "新用户"
+}
+
+### 测试注册已存在的账号
+POST http://localhost:8081/user/register
+Content-Type: application/json
+
+{
+  "username": "testuser",
+  "password": "123456",
+  "nickname": "重复注册"
+}
+
+### 测试用户注册（新同学）
+POST http://localhost:8081/user/register
+Content-Type: application/json
+
+{
+  "username": "newstudent01",
+  "password": "888",
+  "nickname": "大四闲置出清"
+}

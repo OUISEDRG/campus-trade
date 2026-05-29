@@ -1,0 +1,40 @@
+# compiled output
+/target/
+/dist/
+/bin/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Dependencies
+node_modules/
+bower_components/
+
+# Uploads
+uploads/
+/uploads
+
+# Environment files with secrets
+application-local.yml
+application-dev.yml
+application-prod.yml
+*.env
+.env
+.env.*
+
+# IDE specific files
+*.classpath
+*.project
+*.settings/
