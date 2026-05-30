@@ -79,9 +79,11 @@ import { reactive, ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import request from '../utils/request'
+import { useUserStore } from '../stores/user'
 import * as THREE from 'three'
 
 const router = useRouter()
+const userStore = useUserStore()
 const isRegister = ref(false)
 const form = reactive({ username: '', password: '' })
 
@@ -206,10 +208,10 @@ const handleLogin = async () => {
   try {
     const res = await request.post('/user/login', form)
     if (res.data.code === 200) {
-      localStorage.setItem('user', JSON.stringify(res.data.data))
+      const userData = res.data.data
+      userStore.addUserSession(userData.id, userData.token || '', userData)
       ElMessage.success('欢迎回来！')
-      const user = res.data.data
-      if (user.role === 1) {
+      if (userData.role === 1) {
         router.push('/admin')
       } else {
         router.push('/home')

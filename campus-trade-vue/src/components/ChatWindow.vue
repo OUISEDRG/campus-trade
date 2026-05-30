@@ -50,6 +50,7 @@
 import { ref, reactive, onMounted, onUnmounted, nextTick } from 'vue'
 import { ChatDotRound, Close } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
+import { useUserStore } from '../stores/user'
 
 const props = defineProps({
   sellerId: { type: Number, required: true },
@@ -57,7 +58,8 @@ const props = defineProps({
   goodsId: { type: Number, required: true }
 })
 
-const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
+const userStore = useUserStore()
+const currentUser = userStore.currentUser || {}
 const currentUserId = currentUser.id
 
 const isChatOpen = ref(false)
@@ -110,12 +112,7 @@ const initWebSocket = () => {
 const loadHistory = async () => {
   try {
     const request = (await import('../utils/request')).default
-    const res = await request.get('/chat/history', {
-      params: {
-        userId: currentUserId,
-        targetId: props.sellerId
-      }
-    })
+    const res = await request.get(`/chat/history/${currentUserId}/${props.sellerId}`)
     if (res.data.code === 200) {
       messageList.value = res.data.data
       scrollToBottom()

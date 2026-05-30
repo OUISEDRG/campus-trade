@@ -208,8 +208,10 @@ import { ArrowRight, SwitchButton, EditPen, Shop, CircleClose, Delete, Plus, Cam
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import request from '../utils/request'
 import { offShelvesGoods } from '../api/goods'
+import { useUserStore } from '../stores/user'
 
 const router = useRouter()
+const userStore = useUserStore()
 const user = ref({})
 const uploadUrl = request.defaults.baseURL + '/file/upload'
 
@@ -244,9 +246,9 @@ const profileRules = {
 }
 
 onMounted(() => {
-  const u = localStorage.getItem('user')
-  if (u) {
-    user.value = JSON.parse(u)
+  const currentUser = userStore.currentUser
+  if (currentUser) {
+    user.value = currentUser
     loadStats()
   } else {
     ElMessage.warning('请先登录哦')
@@ -399,7 +401,7 @@ const submitProfileUpdate = async () => {
 }
 
 const handleLogout = () => {
-  localStorage.removeItem('user')
+  userStore.logout()
   ElMessage.success('已安全退出')
   router.push('/')
 }

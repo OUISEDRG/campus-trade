@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { useUserStore } from '../stores/user'
 
 export const useChatStore = defineStore('chat', {
   state: () => ({
@@ -71,8 +72,8 @@ export const useChatStore = defineStore('chat', {
     },
     
     getCurrentUserId() {
-      const user = JSON.parse(localStorage.getItem('user') || '{}')
-      return user.id
+      const userStore = useUserStore()
+      return userStore.activeUserId
     },
     
     selectSession(session) {

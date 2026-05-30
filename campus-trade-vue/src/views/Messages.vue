@@ -111,13 +111,15 @@ import { useRouter } from 'vue-router'
 import { ChatDotRound, ArrowLeft, Picture } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { useChatStore } from '../stores/chat'
+import { useUserStore } from '../stores/user'
 
 const router = useRouter()
 const chatStore = useChatStore()
+const userStore = useUserStore()
 const inputText = ref('')
 const scrollbarRef = ref(null)
 
-const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
+const currentUser = userStore.currentUser || {}
 const currentUserId = currentUser.id
 
 const getCurrentSession = computed(() => {

@@ -137,9 +137,11 @@ import { useRouter } from 'vue-router'
 import { User, DataLine, SwitchButton, Search } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import request from '../utils/request'
-import * as echarts from 'echarts' // 需要 npm install echarts
+import * as echarts from 'echarts'
+import { useUserStore } from '../stores/user'
 
 const router = useRouter()
+const userStore = useUserStore()
 const activeTab = ref('users')
 
 // 账号管理状态
@@ -155,8 +157,8 @@ const showDetailDialog = ref(false)
 const selectedUser = ref(null)
 
 onMounted(() => {
-  const user = JSON.parse(localStorage.getItem('user') || '{}')
-  if (user.role !== 1) {
+  const currentUser = userStore.currentUser || {}
+  if (currentUser.role !== 1) {
     ElMessage.error('权限不足，请使用管理员账号登录')
     router.replace('/')
     return

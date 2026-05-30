@@ -129,11 +129,13 @@ import { ElMessageBox, ElMessage } from 'element-plus'
 import request from '../utils/request'
 import ChatWindow from '../components/ChatWindow.vue'
 import { offShelvesGoods } from '../api/goods'
+import { useUserStore } from '../stores/user'
 
 const route = useRoute()
 const router = useRouter()
+const userStore = useUserStore()
 
-const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
+const currentUser = userStore.currentUser || {}
 const currentUserId = currentUser.id
 
 // 准备一个小盒子，用来装从后端拿回来的商品数据
@@ -162,11 +164,11 @@ const loadComments = async () => {
 const submitComment = async () => {
   if (!newComment.value.trim()) return ElMessage.warning('留言内容不能为空哦')
   
-  const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
+  const cu = userStore.currentUser || {}
   const res = await request.post('/comment/add', {
     goodsId: route.params.id,
-    userId: currentUser.id,
-    nickname: currentUser.nickname || currentUser.username,
+    userId: cu.id,
+    nickname: cu.nickname || cu.username,
     content: newComment.value
   })
 
@@ -209,9 +211,9 @@ const loadGoodsDetail = async () => {
 }
 
 const handleBuy = () => {
-  const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
+  const cu = userStore.currentUser || {}
   
-  if (currentUser.id === goods.value.userId) {
+  if (cu.id === goods.value.userId) {
     return ElMessage.warning('不能买自己发布的商品哦！')
   }
 
