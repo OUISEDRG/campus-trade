@@ -17,17 +17,9 @@ request.interceptors.request.use(
     const path = config.url || ''
     const isAdminPath = path.startsWith('/admin') || window.location.pathname.startsWith('/admin')
     
-    if (isAdminPath) {
-      if (adminStore.adminToken) {
-        config.headers['Authorization'] = `Bearer ${adminStore.adminToken}`
-      }
-    } else {
-      if (userStore.currentToken) {
-        config.headers['Authorization'] = `Bearer ${userStore.currentToken}`
-      }
-    }
+    // 这个项目暂时不需要 token 认证，只需要标识用户身份
     
-    if (userStore.activeUserId && !isAdminPath) {
+    if (!isAdminPath && userStore.activeUserId) {
       config.headers['X-User-Id'] = userStore.activeUserId
     }
     
@@ -39,7 +31,7 @@ request.interceptors.request.use(
 request.interceptors.response.use(
   response => {
     const res = response.data
-    if (res.code === 40301 || (res.message && res.message.includes('被封禁')) {
+    if (res.code === 40301 || (res.message && res.message.includes('被封禁'))) {
       ElMessage.error({
         message: '登录失败：您的账号已被系统封禁。',
         duration: 5000

@@ -215,14 +215,19 @@ const handleLogin = async () => {
       if (userData.role === 1) {
         adminStore.setAdminLoginInfo(userData)
         ElMessage.success('欢迎回来，管理员！')
-        router.push('/admin')
+        setTimeout(() => {
+          router.push('/admin')
+        }, 100)
       } else {
         userStore.addUserSession(userData.id, userData.token || '', userData)
         ElMessage.success('欢迎回来！')
         router.push('/home')
       }
     } else { ElMessage.error(res.data.message) }
-  } catch (e) { ElMessage.error('网络开了个小差') }
+  } catch (e) { 
+    console.error('[Login] 登录异常:', e)
+    ElMessage.error('网络开了个小差') 
+  }
 }
 
 const handleRegister = async () => {

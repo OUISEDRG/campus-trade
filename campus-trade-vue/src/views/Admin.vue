@@ -450,4 +450,43 @@ const handleLogout = () => {
   background: rgba(144, 147, 153, 0.1);
   color: #909399;
 }
+
+/* 统一按钮样式 - glass-btn */
+.glass-btn {
+  border: none;
+  border-radius: 12px;
+  padding: 12px 30px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 15px;
+  transition: all 0.3s;
+}
+
+.glass-btn.primary {
+  background: var(--primary-color, #409eff);
+  color: white;
+  box-shadow: 0 4px 15px rgba(64, 158, 255, 0.3);
+}
+
+.glass-btn.primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(64, 158, 255, 0.4);
+}
+
+.glass-btn.primary:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.3);
+}
+
+.glass-btn.full {
+  width: 100%;
+}
+
+.glass-btn:disabled {
+  background: rgba(150, 150, 150, 0.4);
+  cursor: not-allowed;
+  opacity: 0.6;
+  transform: none;
+  box-shadow: none;
+}
 </style>

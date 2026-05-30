@@ -5,10 +5,6 @@ export const useUserStore = defineStore('multiUser', () => {
   const userMap = ref({})
   const activeUserId = ref(null)
 
-  const currentToken = computed(() => {
-    return userMap.value[activeUserId.value]?.token || ''
-  })
-
   const currentUser = computed(() => {
     return userMap.value[activeUserId.value]?.userInfo || null
   })
@@ -25,11 +21,13 @@ export const useUserStore = defineStore('multiUser', () => {
   })
 
   const isLoggedIn = computed(() => {
-    return activeUserId.value !== null && currentToken.value !== ''
+    return activeUserId.value !== null && 
+           userMap.value[activeUserId.value]?.userInfo !== null && 
+           userMap.value[activeUserId.value]?.userInfo !== undefined
   })
 
   const addUserSession = (userId, token, userInfo) => {
-    userMap.value[userId] = { token, userInfo }
+    userMap.value[userId] = { userInfo }
     activeUserId.value = userId
     persistToLocalStorage()
   }
@@ -87,7 +85,6 @@ export const useUserStore = defineStore('multiUser', () => {
   return {
     userMap,
     activeUserId,
-    currentToken,
     currentUser,
     allUsers,
     loggedInUserCount,

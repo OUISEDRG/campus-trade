@@ -20,7 +20,7 @@ export const useChatStore = defineStore('chat', {
         this.socket = new WebSocket(`ws://localhost:8080/ws/chat/${userId}`)
         
         this.socket.onopen = () => {
-          console.log('全局WebSocket连接成功')
+          // 连接成功，不输出日志
         }
         
         this.socket.onmessage = (event) => {
@@ -33,7 +33,7 @@ export const useChatStore = defineStore('chat', {
         }
         
         this.socket.onclose = () => {
-          console.log('全局WebSocket断开')
+          // 连接关闭，不输出日志
         }
         
         this.socket.onerror = (error) => {
