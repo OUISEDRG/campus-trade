@@ -80,10 +80,12 @@ import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import request from '../utils/request'
 import { useUserStore } from '../stores/user'
+import { useAdminStore } from '../stores/admin'
 import * as THREE from 'three'
 
 const router = useRouter()
 const userStore = useUserStore()
+const adminStore = useAdminStore()
 const isRegister = ref(false)
 const form = reactive({ username: '', password: '' })
 
@@ -209,11 +211,14 @@ const handleLogin = async () => {
     const res = await request.post('/user/login', form)
     if (res.data.code === 200) {
       const userData = res.data.data
-      userStore.addUserSession(userData.id, userData.token || '', userData)
-      ElMessage.success('欢迎回来！')
+      
       if (userData.role === 1) {
+        adminStore.setAdminLoginInfo(userData)
+        ElMessage.success('欢迎回来，管理员！')
         router.push('/admin')
       } else {
+        userStore.addUserSession(userData.id, userData.token || '', userData)
+        ElMessage.success('欢迎回来！')
         router.push('/home')
       }
     } else { ElMessage.error(res.data.message) }

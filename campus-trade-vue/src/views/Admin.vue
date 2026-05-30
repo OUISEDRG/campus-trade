@@ -138,10 +138,10 @@ import { User, DataLine, SwitchButton, Search } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import request from '../utils/request'
 import * as echarts from 'echarts'
-import { useUserStore } from '../stores/user'
+import { useAdminStore } from '../stores/admin'
 
 const router = useRouter()
-const userStore = useUserStore()
+const adminStore = useAdminStore()
 const activeTab = ref('users')
 
 // 账号管理状态
@@ -157,9 +157,8 @@ const showDetailDialog = ref(false)
 const selectedUser = ref(null)
 
 onMounted(() => {
-  const currentUser = userStore.currentUser || {}
-  if (currentUser.role !== 1) {
-    ElMessage.error('权限不足，请使用管理员账号登录')
+  if (!adminStore.isAdminLoggedIn) {
+    ElMessage.error('请先登录管理员账号')
     router.replace('/')
     return
   }
@@ -279,7 +278,7 @@ const initChart = async () => {
 }
 
 const handleLogout = () => {
-  localStorage.removeItem('user')
+  adminStore.clear()
   router.push('/')
 }
 </script>

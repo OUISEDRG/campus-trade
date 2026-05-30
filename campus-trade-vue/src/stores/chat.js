@@ -82,7 +82,7 @@ export const useChatStore = defineStore('chat', {
       this.currentMessages = []
       
       if (session.unreadCount > 0) {
-        this.unreadTotal -= session.unreadCount
+        this.unreadTotal = Math.max(0, this.unreadTotal - session.unreadCount)
         session.unreadCount = 0
       }
       
@@ -138,6 +138,14 @@ export const useChatStore = defineStore('chat', {
         this.socket.close()
         this.socket = null
       }
+    },
+    
+    reset() {
+      this.unreadTotal = 0
+      this.sessionList = []
+      this.activeSessionId = null
+      this.currentMessages = []
+      this.currentContextGoods = null
     }
-  }
+  },
 })

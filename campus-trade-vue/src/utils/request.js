@@ -1,6 +1,8 @@
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '../stores/user'
+import { useAdminStore } from '../stores/admin'
+import router from '../router'
 
 const request = axios.create({
   baseURL: 'http://localhost:8080',
@@ -10,13 +12,22 @@ const request = axios.create({
 request.interceptors.request.use(
   config => {
     const userStore = useUserStore()
-    const token = userStore.currentToken
+    const adminStore = useAdminStore()
     
-    if (token) {
-      config.headers['Authorization'] = `Bearer ${token}`
+    const path = config.url || ''
+    const isAdminPath = path.startsWith('/admin') || window.location.pathname.startsWith('/admin')
+    
+    if (isAdminPath) {
+      if (adminStore.adminToken) {
+        config.headers['Authorization'] = `Bearer ${adminStore.adminToken}`
+      }
+    } else {
+      if (userStore.currentToken) {
+        config.headers['Authorization'] = `Bearer ${userStore.currentToken}`
+      }
     }
     
-    if (userStore.activeUserId) {
+    if (userStore.activeUserId && !isAdminPath) {
       config.headers['X-User-Id'] = userStore.activeUserId
     }
     
@@ -28,16 +39,22 @@ request.interceptors.request.use(
 request.interceptors.response.use(
   response => {
     const res = response.data
-    if (res.code === 40301 || (res.message && res.message.includes('被封禁'))) {
+    if (res.code === 40301 || (res.message && res.message.includes('被封禁')) {
       ElMessage.error({
         message: '登录失败：您的账号已被系统封禁。',
         duration: 5000
       })
-      const userStore = useUserStore()
-      if (userStore.activeUserId) {
-        userStore.removeAccount(userStore.activeUserId)
+      const isAdminPath = window.location.pathname.startsWith('/admin')
+      
+      if (isAdminPath) {
+        const adminStore = useAdminStore()
+        adminStore.clear()
+        router.push('/')
+      } else {
+        const userStore = useUserStore()
+        userStore.logout()
+        router.push('/')
       }
-      window.location.href = '/'
       return Promise.reject(new Error(res.message))
     }
     if (res.code !== 200) {
@@ -48,6 +65,24 @@ request.interceptors.response.use(
   },
   error => {
     console.error('请求错误:', error)
+    const status = error.response ? error.response.status : null
+    const isAdminPath = window.location.pathname.startsWith('/admin')
+    
+    if (status === 401 || status === 403) {
+      if (isAdminPath) {
+        const adminStore = useAdminStore()
+        adminStore.clear()
+        ElMessage.error('管理员会话已过期，请重新登录')
+        router.push('/')
+      } else {
+        const userStore = useUserStore()
+        userStore.logout()
+        ElMessage.error('登录已过期，请重新登录')
+        router.push('/')
+      }
+      return Promise.reject(error)
+    }
+    
     const errorMsg = error.response?.data?.message || 
                      error.response?.statusText || 
                      '网络开了个小差'

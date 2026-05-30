@@ -12,7 +12,7 @@
         <span @click="router.push('/category')">分类</span>
         <span @click="router.push('/me')">我的</span>
         <div class="message-badge" @click="router.push('/messages')">
-          <el-badge :value="chatStore?.unreadTotal" :hidden="!chatStore?.unreadTotal" class="msg-badge-wrapper">
+          <el-badge :value="Math.max(0, chatStore?.unreadTotal || 0)" :hidden="!chatStore?.unreadTotal || chatStore.unreadTotal <= 0" class="msg-badge-wrapper">
             <span class="nav-text">消息</span>
           </el-badge>
         </div>
@@ -123,15 +123,17 @@
 </template>
 
 <script setup>
-import { ref, onMounted, reactive } from 'vue'
+import { ref, onMounted, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { Search, ArrowRight, Plus, ChatDotRound, Picture } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import request from '../utils/request'
 import { useChatStore } from '../stores/chat'
+import { useUserStore } from '../stores/user'
 
 const router = useRouter()
-const user = ref({})
+const userStore = useUserStore()
+const user = computed(() => userStore.currentUser || {})
 const goods = ref([])
 const carouselGoods = ref([])
 const showPublish = ref(false)
@@ -161,15 +163,16 @@ const publishForm = reactive({
 })
 
 onMounted(() => {
-  const u = localStorage.getItem('user')
-  if (u) user.value = JSON.parse(u)
-  else router.push('/')
+  if (!userStore.isLoggedIn) {
+    router.push('/')
+    return
+  }
   loadGoods()
   loadCarousel()
   
   // 初始化全局 WebSocket
-  if (user.value.id) {
-    chatStore.initGlobalWebSocket(user.value.id)
+  if (userStore.activeUserId) {
+    chatStore.initGlobalWebSocket(userStore.activeUserId)
   }
 })
 
@@ -233,7 +236,7 @@ const toDetail = (id) => router.push(`/detail/${id}`)
 .glass-search { flex: 1; max-width: 400px; margin: 0 40px; background: rgba(255,255,255,0.2); border-radius: 12px; display: flex; align-items: center; padding: 0 15px; border: 1px solid rgba(255,255,255,0.3); }
 .glass-search input { background: transparent; border: none; outline: none; padding: 10px; flex: 1; color: #333; }
 .nav-links { display: flex; align-items: center; gap: 20px; }
-.nav-links span { cursor: pointer; font-weight: 500; opacity: 0.7; transition: 0.3s; }
+.nav-links span { cursor: pointer; font-weight: 500; opacity: 0.7; transition: 0.3s; font-size: 14px; }
 .nav-links span:hover { opacity: 1; color: #409eff; }
 .nav-links span.active { color: #409eff; opacity: 1; }
 .user-badge { width: 35px; height: 35px; background: #409eff; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; }
