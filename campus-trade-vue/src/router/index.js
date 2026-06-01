@@ -15,4 +15,32 @@ const router = createRouter({
   routes
 })
 
+router.beforeEach(async (to, from, next) => {
+  const { useUserStore } = await import('../stores/user')
+  const { useAdminStore } = await import('../stores/admin')
+  const userStore = useUserStore()
+  const adminStore = useAdminStore()
+
+  const isLoginPage = to.path === '/'
+  const isAdminPage = to.path === '/admin'
+  const isLoggedIn = userStore.isLoggedIn
+  const isAdminLoggedIn = adminStore.isAdminLoggedIn
+
+  if (isLoginPage) {
+    next()
+  } else if (isAdminPage) {
+    if (isAdminLoggedIn) {
+      next()
+    } else {
+      next('/')
+    }
+  } else {
+    if (isLoggedIn) {
+      next()
+    } else {
+      next('/')
+    }
+  }
+})
+
 export default router

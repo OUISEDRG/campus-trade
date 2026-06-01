@@ -45,7 +45,7 @@
 
       <div class="context-goods-card" v-if="chatStore.currentContextGoods">
         <el-image
-          :src="chatStore.currentContextGoods.imageUrl"
+          :src="(chatStore.currentContextGoods.imageUrl || '').split(',')[0]"
           class="goods-img"
           fit="cover"
         >

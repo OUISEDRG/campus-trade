@@ -69,7 +69,7 @@
     >
       <div v-if="detailList.length > 0" class="list-container">
         <div v-for="(item, index) in detailList" :key="item.id" class="list-item glass-card" @click="handleItemClick(item)">
-          <img :src="item.imageUrl || `https://picsum.photos/seed/${item.id}/100/100`" class="item-thumb" />
+          <img :src="(item.imageUrl || '').split(',')[0] || `https://picsum.photos/seed/${item.id}/100/100`" class="item-thumb" />
           <div class="item-info">
             <h4>{{ item.title }}</h4>
             <p class="price">￥{{ item.price }}</p>
@@ -97,41 +97,23 @@
       max-width="400px"
       class="glass-dialog"
     >
-      <el-form label-position="top">
-        <el-form-item label="商品图片">
+      <el-form label-position="top" class="publish-form">
+        <el-form-item label="商品图片" class="form-item">
           <div class="upload-section">
-            <el-upload
-              class="avatar-uploader"
-              :action="uploadUrl"
-              :show-file-list="false"
-              :on-success="handleUploadSuccess"
-              :before-upload="beforeUpload"
-            >
-              <div v-if="editForm.imageUrl" class="image-preview">
-                <img :src="editForm.imageUrl" class="uploaded-avatar" />
-                <div class="hover-mask">
-                  <el-icon><Camera /></el-icon>
-                  <span>更换图片</span>
-                </div>
-              </div>
-              <div v-else class="upload-placeholder">
-                <el-icon class="avatar-uploader-icon"><Plus /></el-icon>
-                <span class="upload-text">点击选择图片</span>
-              </div>
-            </el-upload>
+            <MultiImageUpload v-model="editForm.imageUrl" :limit="5" :max-size="3" />
           </div>
         </el-form-item>
 
-        <el-form-item label="物品名称">
+        <el-form-item label="物品名称" class="form-item">
           <el-input v-model="editForm.title" class="custom-input" />
         </el-form-item>
-        <el-form-item label="预期价格">
+        <el-form-item label="预期价格" class="form-item">
           <div class="price-input-wrapper">
             <span class="price-prefix">￥</span>
             <el-input-number v-model="editForm.price" :precision="2" :min="0" class="price-input" style="width: 100%" />
           </div>
         </el-form-item>
-        <el-form-item label="详细描述">
+        <el-form-item label="详细描述" class="form-item">
           <el-input type="textarea" v-model="editForm.description" :rows="3" class="custom-textarea" />
         </el-form-item>
       </el-form>
@@ -179,15 +161,15 @@
       max-width="400px"
       class="glass-dialog"
     >
-      <el-form :model="profileForm" :rules="profileRules" ref="profileFormRef" label-position="top">
-        <el-form-item label="真实姓名" prop="name">
-          <el-input v-model="profileForm.name" placeholder="请输入您的姓名" />
+      <el-form :model="profileForm" :rules="profileRules" ref="profileFormRef" label-position="top" class="publish-form">
+        <el-form-item label="真实姓名" prop="name" class="form-item">
+          <el-input v-model="profileForm.name" placeholder="请输入您的姓名" class="custom-input" />
         </el-form-item>
-        <el-form-item label="联系电话" prop="phone">
-          <el-input v-model="profileForm.phone" placeholder="请输入手机号" />
+        <el-form-item label="联系电话" prop="phone" class="form-item">
+          <el-input v-model="profileForm.phone" placeholder="请输入手机号" class="custom-input" />
         </el-form-item>
-        <el-form-item label="收货地址 / 宿舍" prop="college">
-          <el-input v-model="profileForm.college" placeholder="例如：东区13舍 / 计算机学院" />
+        <el-form-item label="收货地址 / 宿舍" prop="college" class="form-item">
+          <el-input v-model="profileForm.college" placeholder="例如：东区13舍 / 计算机学院" class="custom-input" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -204,16 +186,16 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ArrowRight, SwitchButton, EditPen, Shop, CircleClose, Delete, Plus, Camera } from '@element-plus/icons-vue'
+import { ArrowRight, SwitchButton, EditPen, Shop, CircleClose, Delete, Camera } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import request from '../utils/request'
 import { offShelvesGoods } from '../api/goods'
 import { useUserStore } from '../stores/user'
+import MultiImageUpload from '../components/MultiImageUpload.vue'
 
 const router = useRouter()
 const userStore = useUserStore()
 const user = ref({})
-const uploadUrl = request.defaults.baseURL + '/file/upload'
 
 const stats = ref({ publishCount: 0, soldCount: 0, boughtCount: 0 })
 
@@ -312,28 +294,6 @@ const openEdit = (item) => {
   editForm.description = item.description
   editForm.imageUrl = item.imageUrl || ''
   showEditDialog.value = true
-}
-
-const handleUploadSuccess = (res) => {
-  if (res.code === 200) {
-    editForm.imageUrl = res.data
-    ElMessage.success('图片上传成功！')
-  } else {
-    ElMessage.error(res.message || '图片上传失败，请重试')
-  }
-}
-
-const beforeUpload = (file) => {
-  const isAllowedType = ['image/jpeg', 'image/png', 'image/webp'].includes(file.type)
-  const isLt10M = file.size / 1024 / 1024 < 10
-
-  if (!isAllowedType) {
-    ElMessage.error('上传图片只能是 JPG, PNG 或 WEBP 格式!')
-  }
-  if (!isLt10M) {
-    ElMessage.error('上传图片大小不能超过 10MB!')
-  }
-  return isAllowedType && isLt10M
 }
 
 const submitEdit = async () => {
@@ -510,162 +470,222 @@ const handleDeleteAccount = () => {
 .delete-btn { background: rgba(245, 108, 108, 0.1); color: #f56c6c; }
 .delete-btn:hover { background: #f56c6c; color: white; }
 
-.glass-btn { border: none; border-radius: 12px; padding: 12px 30px; cursor: pointer; font-weight: bold; transition: 0.3s; }
-.glass-btn.primary { background: var(--primary-color, #409eff); color: white; }
-.glass-btn.full { width: 100%; }
-.glass-btn.secondary {
-  background: rgba(255, 255, 255, 0.3);
-  color: var(--text-color, #333);
-  border: 1px solid rgba(255, 255, 255, 0.4);
-}
-.glass-btn.secondary:hover {
-  background: rgba(255, 255, 255, 0.5);
-}
-
-.dialog-footer {
-  display: flex;
-  gap: 12px;
-  justify-content: flex-end;
-  padding-top: 8px;
+/* 统一的表单样式 */
+.publish-form {
+  .form-item {
+    margin-bottom: 20px;
+  }
+  
+  :deep(.el-form-item__label) {
+    font-weight: 600;
+    color: var(--text-color, #333);
+    margin-bottom: 10px;
+    font-size: 14px;
+    line-height: 1.5;
+    display: block;
+  }
 }
 
+/* 表单占位符样式 */
+.publish-form :deep(.el-input__placeholder),
+.publish-form :deep(.el-textarea__placeholder),
+.publish-form :deep(.el-select__placeholder) {
+  color: rgba(0,0,0,0.3);
+  font-style: normal;
+}
+
+/* 上传区域 */
 .upload-section {
   text-align: center;
-  width: 100%;
-  display: flex;
-  justify-content: center;
-}
-
-.avatar-uploader :deep(.el-upload) {
-  border: 2px dashed rgba(255, 255, 255, 0.3);
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.2);
-  width: 160px;
-  height: 160px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  transition: all 0.3s;
-  position: relative;
-  cursor: pointer;
-}
-
-.avatar-uploader :deep(.el-upload:hover) {
-  border-color: var(--primary-color, #409eff);
-  background: rgba(64, 158, 255, 0.1);
-}
-
-.upload-placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-}
-
-.avatar-uploader-icon {
-  font-size: 32px;
-  color: var(--primary-color, #409eff);
-}
-
-.upload-text {
-  font-size: 14px;
-  color: #999;
-}
-
-.image-preview {
-  width: 100%;
-  height: 100%;
-  position: relative;
-}
-
-.uploaded-avatar {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 14px;
-}
-
-.hover-mask {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5);
-  color: white;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  opacity: 0;
-  transition: opacity 0.3s;
-  border-radius: 14px;
-}
-
-.image-preview:hover .hover-mask {
-  opacity: 1;
-}
-
-.hover-mask .el-icon {
-  font-size: 24px;
-}
-
-.hover-mask span {
-  font-size: 13px;
-  font-weight: bold;
-}
-
-.price-input-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.price-prefix {
-  font-weight: bold;
-  color: #f56c6c;
-  font-size: 18px;
-}
-
-.custom-input :deep(.el-input__wrapper) {
-  background: rgba(255, 255, 255, 0.5);
+  padding: 16px;
+  background: rgba(255,255,255,0.3);
   backdrop-filter: blur(5px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 16px;
+  border: 1px dashed rgba(64,158,255,0.3);
+  transition: all 0.3s;
+}
+
+.upload-section:hover {
+  background: rgba(64,158,255,0.05);
+  border-color: rgba(64,158,255,0.5);
+}
+
+/* 自定义输入框 */
+.custom-input :deep(.el-input__wrapper) {
+  background: rgba(255,255,255,0.5);
+  backdrop-filter: blur(5px);
+  border: 1px solid rgba(255,255,255,0.3);
   border-radius: 12px;
   box-shadow: none;
   transition: all 0.3s;
-  padding: 8px 15px;
 }
 
 .custom-input :deep(.el-input__wrapper:hover) {
-  border-color: rgba(255, 255, 255, 0.8);
+  border-color: rgba(255,255,255,0.5);
 }
 
 .custom-input :deep(.el-input__wrapper.is-focus) {
-  border-color: #409eff;
-  box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2);
+  border-color: var(--primary-color, #409eff);
+  box-shadow: 0 0 0 2px rgba(64,158,255,0.2);
 }
 
-.custom-textarea :deep(.el-textarea__inner) {
-  background: rgba(255, 255, 255, 0.5);
+/* 价格输入 */
+.price-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: rgba(255,255,255,0.5);
   backdrop-filter: blur(5px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(255,255,255,0.3);
+  border-radius: 12px;
+  transition: all 0.3s;
+}
+
+.price-input-wrapper:hover {
+  border-color: rgba(255,255,255,0.5);
+}
+
+.price-input-wrapper:focus-within {
+  border-color: var(--primary-color, #409eff);
+  box-shadow: 0 0 0 2px rgba(64,158,255,0.2);
+}
+
+.price-prefix {
+  font-size: 24px;
+  font-weight: 700;
+  color: #f56c6c;
+  line-height: 1;
+}
+
+.price-input {
+  flex: 1;
+}
+
+.price-input :deep(.el-input-number__wrapper) {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+}
+
+.price-input :deep(.el-input-number__input) {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-color, #333);
+}
+
+.price-input :deep(.el-input-number__decrease),
+.price-input :deep(.el-input-number__increase) {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(0,0,0,0.05);
+  border: none;
+}
+
+.price-input :deep(.el-input-number__decrease):hover,
+.price-input :deep(.el-input-number__increase):hover {
+  background: rgba(64,158,255,0.1);
+}
+
+/* 自定义文本域 */
+.custom-textarea :deep(.el-textarea__inner) {
+  background: rgba(255,255,255,0.5);
+  backdrop-filter: blur(5px);
+  border: 1px solid rgba(255,255,255,0.3);
   border-radius: 12px;
   box-shadow: none;
+  resize: none;
   transition: all 0.3s;
-  padding: 12px 15px;
 }
 
 .custom-textarea :deep(.el-textarea__inner:hover) {
-  border-color: rgba(255, 255, 255, 0.8);
+  border-color: rgba(255,255,255,0.5);
 }
 
 .custom-textarea :deep(.el-textarea__inner:focus) {
-  border-color: #409eff;
-  box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2);
+  border-color: var(--primary-color, #409eff);
+  box-shadow: 0 0 0 2px rgba(64,158,255,0.2);
 }
+
+/* 统一的按钮样式 */
+.glass-btn {
+  border: none;
+  border-radius: 12px;
+  padding: 12px 30px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 15px;
+  font-family: 'PingFang SC', sans-serif;
+  transition: all 0.3s ease;
+  outline: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.glass-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  transition: left 0.5s;
+}
+
+.glass-btn:hover::before {
+  left: 100%;
+}
+
+.glass-btn.primary {
+  background: linear-gradient(135deg, var(--primary-color, #409eff), #66b1ff);
+  color: white;
+  box-shadow: 0 4px 15px rgba(64,158,255,0.3), 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.glass-btn.primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(64,158,255,0.4), 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.glass-btn.primary:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(64,158,255,0.3);
+}
+
+.glass-btn.secondary {
+  background: rgba(255,255,255,0.4);
+  backdrop-filter: blur(5px);
+  color: var(--text-color, #333);
+  border: 1px solid rgba(255,255,255,0.5);
+}
+
+.glass-btn.secondary:hover {
+  background: rgba(255,255,255,0.6);
+  border-color: rgba(255,255,255,0.7);
+}
+
+.glass-btn.secondary:active {
+  background: rgba(255,255,255,0.3);
+}
+
+.glass-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.glass-btn:disabled:hover {
+  box-shadow: none;
+}
+
+.glass-btn.full { 
+  width: 100%; 
+}
+
+
 
 .buyer-info-card {
   background: rgba(255, 255, 255, 0.3);

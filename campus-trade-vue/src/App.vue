@@ -89,6 +89,8 @@ body { margin: 0; font-family: 'PingFang SC', sans-serif; overflow-x: hidden; }
   opacity: 0.5;
   border-radius: 50%;
   animation: move 20s infinite alternate;
+  will-change: transform;
+  transform: translateZ(0);
 }
 .blob-1 { width: 500px; height: 500px; background: #a2d2ff; top: -100px; left: -100px; }
 .blob-2 { width: 400px; height: 400px; background: #ffafbd; bottom: -100px; right: -100px; animation-delay: -5s; }

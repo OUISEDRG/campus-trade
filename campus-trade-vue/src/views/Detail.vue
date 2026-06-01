@@ -12,7 +12,7 @@
         <!-- 左边：展示商品大图 -->
         <div class="image-section">
           <!-- 这里会优先显示数据库里的真实图片，如果没有真实图片，就用一张网图代替 -->
-          <img :src="goods.imageUrl || `https://picsum.photos/seed/${route.params.id}/800/800`" class="main-img" />
+          <img :src="(goods.imageUrl || '').split(',')[0] || `https://picsum.photos/seed/${route.params.id}/800/800`" class="main-img" />
         </div>
 
         <!-- 右边：展示商品文字信息 -->

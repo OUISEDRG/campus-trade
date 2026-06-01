@@ -23,7 +23,7 @@
         <div class="goods-grid" v-if="goodsList.length > 0">
           <div v-for="item in goodsList" :key="item.id" class="glass-card item-card" @click="toDetail(item.id)">
             <div class="img-wrapper">
-              <img :src="item.imageUrl || `https://picsum.photos/seed/${item.id}/300/300`" @error="handleImageError" />
+              <img :src="(item.imageUrl || '').split(',')[0] || `https://picsum.photos/seed/${item.id}/300/300`" @error="handleImageError" />
             </div>
             <div class="info">
               <h4 class="text-ellipsis">{{ item.title }}</h4>

@@ -26,7 +26,7 @@
         <el-carousel :interval="4000" type="card" height="280px">
           <el-carousel-item v-for="item in carouselGoods" :key="item.id">
             <div class="banner-card" @click="toDetail(item.id)">
-              <img :src="item.imageUrl" @error="handleImageError($event, defaultCarouselImage)" />
+              <img :src="(item.imageUrl || '').split(',')[0] || defaultCarouselImage" @error="handleImageError($event, defaultCarouselImage)" />
               <div class="banner-glass-info">
                 <h3 class="text-ellipsis">{{ item.title }}</h3>
                 <p style="color: #ffdeeb; font-weight: bold; font-size: 18px;">￥{{ item.price }}</p>
@@ -46,7 +46,7 @@
       <div class="goods-grid">
         <div v-for="item in goods" :key="item.id" class="item-card glass-card" @click="toDetail(item.id)">
           <div class="item-img">
-            <img :src="item.imageUrl || `https://picsum.photos/seed/${item.id}/400/400`" @error="handleImageError($event, defaultImage)" />
+            <img :src="(item.imageUrl || '').split(',')[0] || `https://picsum.photos/seed/${item.id}/400/400`" @error="handleImageError($event, defaultImage)" />
             <!-- 🌟 这里会自动显示商品的真实分类标签 -->
             <div class="category-tag">{{ item.categoryName || '其他' }}</div>
           </div>
@@ -67,21 +67,7 @@
       <el-form label-position="top" class="publish-form">
         <el-form-item label="商品照片" class="form-item">
           <div class="upload-section">
-            <el-upload
-              class="avatar-uploader"
-              :action="uploadUrl"
-              :show-file-list="false"
-              :on-success="handleUploadSuccess"
-              :before-upload="beforeUpload"
-            >
-              <div v-if="publishForm.imageUrl" class="image-preview">
-                <img :src="publishForm.imageUrl" class="uploaded-avatar" />
-              </div>
-              <div v-else class="upload-placeholder">
-                <el-icon class="avatar-uploader-icon"><Plus /></el-icon>
-                <span class="upload-text">点击上传</span>
-              </div>
-            </el-upload>
+            <MultiImageUpload v-model="publishForm.imageUrl" :limit="5" :max-size="3" />
           </div>
         </el-form-item>
 
@@ -125,11 +111,12 @@
 <script setup>
 import { ref, onMounted, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { Search, ArrowRight, Plus, ChatDotRound, Picture } from '@element-plus/icons-vue'
+import { Search, ArrowRight, ChatDotRound, Picture } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import request from '../utils/request'
 import { useChatStore } from '../stores/chat'
 import { useUserStore } from '../stores/user'
+import MultiImageUpload from '../components/MultiImageUpload.vue'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -147,9 +134,6 @@ const handleImageError = (event, fallbackUrl) => {
   event.target.src = fallbackUrl
   event.target.onerror = null
 }
-
-// 获取上传地址，从 request 实例中获取
-const uploadUrl = request.defaults.baseURL + '/file/upload'
 
 // 🌟 这里必须和分类页的选项一模一样
 const categories = ['教材书籍', '数码电子', '生活用品', '美妆服饰', '运动健身', '其他闲置']
@@ -193,19 +177,6 @@ const loadCarousel = async () => {
 
 const handleSearch = () => loadGoods()
 const openPublish = () => showPublish.value = true
-
-const handleUploadSuccess = (res) => {
-  if (res.code === 200) {
-    publishForm.imageUrl = res.data
-    ElMessage.success('图片上传成功！')
-  }
-}
-
-const beforeUpload = (file) => {
-  const isImg = file.type.startsWith('image/')
-  if (!isImg) ElMessage.error('只能上传图片哦！')
-  return isImg
-}
 
 const submitPublish = async () => {
   if(!publishForm.title || !publishForm.categoryName) {
@@ -282,66 +253,41 @@ const toDetail = (id) => router.push(`/detail/${id}`)
 
 .publish-form {
   .form-item {
-    margin-bottom: 24px;
+    margin-bottom: 20px;
   }
   
   :deep(.el-form-item__label) {
     font-weight: 600;
     color: var(--text-color, #333);
-    margin-bottom: 8px;
+    margin-bottom: 10px;
+    font-size: 14px;
+    line-height: 1.5;
+    display: block;
   }
+}
+
+/* 表单占位符样式 */
+.publish-form :deep(.el-input__placeholder),
+.publish-form :deep(.el-textarea__placeholder),
+.publish-form :deep(.el-select__placeholder) {
+  color: rgba(0,0,0,0.3);
+  font-style: normal;
 }
 
 /* 上传区域 */
 .upload-section {
   text-align: center;
-}
-
-.avatar-uploader :deep(.el-upload) {
-  border: 2px dashed rgba(255,255,255,0.3);
+  padding: 16px;
+  background: rgba(255,255,255,0.3);
+  backdrop-filter: blur(5px);
   border-radius: 16px;
-  background: rgba(255,255,255,0.2);
-  width: 160px;
-  height: 160px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
+  border: 1px dashed rgba(64,158,255,0.3);
   transition: all 0.3s;
 }
 
-.avatar-uploader :deep(.el-upload:hover) {
-  border-color: var(--primary-color, #409eff);
-  background: rgba(64, 158, 255, 0.1);
-}
-
-.image-preview {
-  width: 100%;
-  height: 100%;
-}
-
-.upload-placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-}
-
-.avatar-uploader-icon {
-  font-size: 32px;
-  color: var(--primary-color, #409eff);
-}
-
-.upload-text {
-  font-size: 14px;
-  color: #999;
-}
-
-.uploaded-avatar {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+.upload-section:hover {
+  background: rgba(64,158,255,0.05);
+  border-color: rgba(64,158,255,0.5);
 }
 
 /* 自定义输入框 */
@@ -390,13 +336,29 @@ const toDetail = (id) => router.push(`/detail/${id}`)
 .price-input-wrapper {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
+  padding: 12px 16px;
+  background: rgba(255,255,255,0.5);
+  backdrop-filter: blur(5px);
+  border: 1px solid rgba(255,255,255,0.3);
+  border-radius: 12px;
+  transition: all 0.3s;
+}
+
+.price-input-wrapper:hover {
+  border-color: rgba(255,255,255,0.5);
+}
+
+.price-input-wrapper:focus-within {
+  border-color: var(--primary-color, #409eff);
+  box-shadow: 0 0 0 2px rgba(64,158,255,0.2);
 }
 
 .price-prefix {
-  font-size: 20px;
-  font-weight: bold;
+  font-size: 24px;
+  font-weight: 700;
   color: #f56c6c;
+  line-height: 1;
 }
 
 .price-input {
@@ -404,11 +366,30 @@ const toDetail = (id) => router.push(`/detail/${id}`)
 }
 
 .price-input :deep(.el-input-number__wrapper) {
-  background: rgba(255,255,255,0.5);
-  backdrop-filter: blur(5px);
-  border: 1px solid rgba(255,255,255,0.3);
-  border-radius: 12px;
+  background: transparent;
+  border: none;
   box-shadow: none;
+  padding: 0;
+}
+
+.price-input :deep(.el-input-number__input) {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-color, #333);
+}
+
+.price-input :deep(.el-input-number__decrease),
+.price-input :deep(.el-input-number__increase) {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(0,0,0,0.05);
+  border: none;
+}
+
+.price-input :deep(.el-input-number__decrease):hover,
+.price-input :deep(.el-input-number__increase):hover {
+  background: rgba(64,158,255,0.1);
 }
 
 /* 自定义文本域 */
@@ -436,38 +417,80 @@ const toDetail = (id) => router.push(`/detail/${id}`)
   display: flex;
   gap: 12px;
   justify-content: flex-end;
-  padding-top: 8px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255,255,255,0.2);
+  margin-top: 8px;
 }
 
 .glass-btn {
   border: none;
   border-radius: 12px;
-  padding: 12px 32px;
+  padding: 12px 30px;
   cursor: pointer;
   font-weight: 600;
   font-size: 15px;
-  transition: all 0.3s;
+  font-family: 'PingFang SC', sans-serif;
+  transition: all 0.3s ease;
+  outline: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.glass-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  transition: left 0.5s;
+}
+
+.glass-btn:hover::before {
+  left: 100%;
 }
 
 .glass-btn.primary {
-  background: var(--primary-color, #409eff);
+  background: linear-gradient(135deg, var(--primary-color, #409eff), #66b1ff);
   color: white;
-  box-shadow: 0 4px 15px rgba(64,158,255,0.3);
+  box-shadow: 0 4px 15px rgba(64,158,255,0.3), 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .glass-btn.primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(64,158,255,0.4);
+  box-shadow: 0 6px 20px rgba(64,158,255,0.4), 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.glass-btn.primary:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(64,158,255,0.3);
 }
 
 .glass-btn.secondary {
-  background: rgba(255,255,255,0.3);
+  background: rgba(255,255,255,0.4);
+  backdrop-filter: blur(5px);
   color: var(--text-color, #333);
-  border: 1px solid rgba(255,255,255,0.4);
+  border: 1px solid rgba(255,255,255,0.5);
 }
 
 .glass-btn.secondary:hover {
-  background: rgba(255,255,255,0.5);
+  background: rgba(255,255,255,0.6);
+  border-color: rgba(255,255,255,0.7);
+}
+
+.glass-btn.secondary:active {
+  background: rgba(255,255,255,0.3);
+}
+
+.glass-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.glass-btn:disabled:hover {
+  box-shadow: none;
 }
 
 /* 消息图标 */

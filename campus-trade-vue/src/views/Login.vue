@@ -21,30 +21,30 @@
     </div>
 
     <!-- 注册弹窗 -->
-    <el-dialog v-model="isRegister" title="加入我们" width="400px" class="glass-dialog">
-      <el-form :model="regForm" :rules="regRules" ref="regFormRef" label-position="top">
-        <el-form-item label="登录账号" prop="username">
+    <el-dialog v-model="isRegister" title="加入我们" width="420px" class="glass-dialog">
+      <el-form :model="regForm" :rules="regRules" ref="regFormRef" label-position="top" class="publish-form">
+        <el-form-item label="登录账号" prop="username" class="form-item">
           <el-input v-model="regForm.username" placeholder="请设置登录账号" class="custom-input" />
         </el-form-item>
         
-        <el-form-item label="登录密码" prop="password">
+        <el-form-item label="登录密码" prop="password" class="form-item">
           <el-input type="password" v-model="regForm.password" placeholder="请设置6位以上密码" show-password class="custom-input" />
         </el-form-item>
 
-        <el-form-item label="真实姓名" prop="name">
+        <el-form-item label="真实姓名" prop="name" class="form-item">
           <el-input v-model="regForm.name" placeholder="请输入中英文姓名" class="custom-input" />
         </el-form-item>
 
-        <el-form-item label="学号" prop="studentId">
+        <el-form-item label="学号" prop="studentId" class="form-item">
           <el-input v-model="regForm.studentId" placeholder="请输入真实学号" class="custom-input" />
         </el-form-item>
 
-        <el-form-item label="手机号码" prop="phone">
+        <el-form-item label="手机号码" prop="phone" class="form-item">
           <el-input v-model="regForm.phone" placeholder="请输入11位手机号" maxlength="11" class="custom-input" />
         </el-form-item>
 
-        <el-form-item label="账号角色" prop="role">
-          <el-radio-group v-model="regForm.role">
+        <el-form-item label="账号角色" prop="role" class="form-item">
+          <el-radio-group v-model="regForm.role" class="custom-radio">
             <el-radio :label="0">普通用户</el-radio>
             <el-radio :label="1">管理员</el-radio>
           </el-radio-group>
@@ -55,6 +55,7 @@
             v-if="regForm.role === 1"
             label="管理邀请码"
             prop="inviteCode"
+            class="form-item"
           >
             <el-input
               v-model="regForm.inviteCode"
@@ -68,20 +69,23 @@
       </el-form>
       
       <template #footer>
-        <button class="glass-btn primary" @click="handleRegister" style="width:100%; margin-top: 10px;">提交注册</button>
+        <div class="dialog-footer">
+          <button class="glass-btn secondary" @click="isRegister = false">取消</button>
+          <button class="glass-btn primary" @click="handleRegister">提交注册</button>
+        </div>
       </template>
     </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { reactive, ref, onMounted, onBeforeUnmount } from 'vue'
+import { reactive, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import request from '../utils/request'
 import { useUserStore } from '../stores/user'
 import { useAdminStore } from '../stores/admin'
-import * as THREE from 'three'
+import { useThreeBg } from '../hooks/useThreeBg'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -138,71 +142,7 @@ const regRules = reactive({
 
 // ==================== 3D 魔法区域 ====================
 const threeContainer = ref(null)
-let scene, camera, renderer, mesh, animationId
-
-const initThreeJS = () => {
-  if (!threeContainer.value) return;
-
-  scene = new THREE.Scene()
-  camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000)
-  camera.position.z = 30
-  
-  renderer = new THREE.WebGLRenderer({ 
-    alpha: true,      // 允许透明，让后面的背景色透过来
-    antialias: true   // 开启抗锯齿，让线条更平滑
-  })
-  
-  renderer.setSize(window.innerWidth, window.innerHeight)
-  threeContainer.value.appendChild(renderer.domElement)
-
-  // 捏一个几何体
-  const geometry = new THREE.IcosahedronGeometry(15, 1)
-  
-  // 🌟 美化核心：科技蓝，带一点半透明全息质感
-  const material = new THREE.MeshBasicMaterial({ 
-    color: 0x409eff,   // 柔和的科技蓝
-    wireframe: true,   // 线框模式
-    transparent: true, 
-    opacity: 0.25      // 25%的不透明度，若隐若现最高级
-  })
-  
-  mesh = new THREE.Mesh(geometry, material)
-  scene.add(mesh)
-
-  // 让它动起来
-  const animate = () => {
-    animationId = requestAnimationFrame(animate)
-    // 匀速缓慢自转
-    mesh.rotation.x += 0.002
-    mesh.rotation.y += 0.003
-    renderer.render(scene, camera)
-  }
-  animate()
-
-  // 监听窗口大小改变，防止拉伸变形
-  window.addEventListener('resize', handleResize)
-}
-
-const handleResize = () => {
-  if (camera && renderer) {
-    camera.aspect = window.innerWidth / window.innerHeight
-    camera.updateProjectionMatrix()
-    renderer.setSize(window.innerWidth, window.innerHeight)
-  }
-}
-
-onMounted(() => {
-  // 稍微延迟确保 DOM 加载完毕
-  setTimeout(() => {
-    initThreeJS()
-  }, 100)
-})
-
-onBeforeUnmount(() => {
-  cancelAnimationFrame(animationId)
-  window.removeEventListener('resize', handleResize)
-  if (renderer) renderer.dispose()
-})
+useThreeBg(threeContainer)
 // ==================== 3D 魔法区域结束 ====================
 
 const handleLogin = async () => {
@@ -259,8 +199,19 @@ const handleRegister = async () => {
   justify-content: center;
   position: relative;
   overflow: hidden;
-  /* 专属淡雅渐变背景，烘托科技蓝星球 */
-  background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
+  background: transparent;
+  z-index: 5;
+}
+
+.login-wrapper::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(253, 251, 251, 0.9) 0%, rgba(235, 237, 238, 0.9) 100%);
+  z-index: 1;
 }
 
 .three-bg {
@@ -269,35 +220,74 @@ const handleRegister = async () => {
   left: 0;
   width: 100%;
   height: 100%;
-  z-index: 1; /* 压在渐变背景上 */
-  pointer-events: none; /* 防止挡住鼠标点击事件 */
+  z-index: 2;
+  pointer-events: none;
 }
 
 .login-card {
   position: relative;
-  z-index: 10; /* 悬浮在 3D 星球之上 */
-  background: var(--glass-bg, rgba(255, 255, 255, 0.45));
-  backdrop-filter: blur(20px);
-  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.3));
-  box-shadow: 0 15px 50px rgba(0,0,0,0.1);
+  z-index: 10;
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.04);
   padding: 50px 40px;
   border-radius: 30px;
   width: 100%;
   max-width: 360px;
   text-align: center;
+  overflow: visible;
+}
+
+.login-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 30px;
+  pointer-events: none;
 }
 
 .title { color: var(--primary-color, #409eff); font-size: 32px; margin-bottom: 10px; font-weight: 900;}
 .subtitle { font-size: 13px; opacity: 0.6; margin-bottom: 40px; letter-spacing: 1px; }
 
 .input-group input {
-  width: 100%; padding: 12px 0; margin-bottom: 25px;
-  background: transparent; border: none;
-  border-bottom: 1px solid var(--glass-border, rgba(0, 0, 0, 0.1));
-  color: var(--text-color, #333); outline: none;
-  transition: 0.3s; font-size: 15px;
+  width: 100%; 
+  padding: 16px 0; 
+  margin-bottom: 25px;
+  background: transparent !important; 
+  border: none;
+  border-bottom: 1px solid rgba(64, 158, 255, 0.3);
+  color: var(--text-color, #333); 
+  outline: none;
+  transition: all 0.3s ease; 
+  font-size: 15px;
+  font-family: 'PingFang SC', sans-serif;
+  backdrop-filter: none;
+  box-shadow: none;
 }
-.input-group input:focus { border-bottom-color: var(--primary-color, #409eff); }
+
+.input-group input::placeholder {
+  color: rgba(0, 0, 0, 0.3);
+  opacity: 1;
+}
+
+.input-group input:hover {
+  border-bottom-color: rgba(64, 158, 255, 0.6);
+}
+
+.input-group input:focus { 
+  border-bottom-color: var(--primary-color, #409eff); 
+  box-shadow: 0 2px 0 0 var(--primary-color, #409eff);
+}
+
+.input-group input:not(:placeholder-shown) {
+  border-bottom-color: rgba(64, 158, 255, 0.8);
+}
 
 .glass-btn {
   background: var(--primary-color, #409eff); color: white;
@@ -350,15 +340,151 @@ const handleRegister = async () => {
   border-radius: 12px;
   box-shadow: none;
   transition: all 0.3s;
-  padding: 8px 15px;
 }
 
 .custom-input :deep(.el-input__wrapper:hover) {
-  border-color: rgba(255, 255, 255, 0.8);
+  border-color: rgba(255, 255, 255, 0.5);
 }
 
 .custom-input :deep(.el-input__wrapper.is-focus) {
   border-color: var(--primary-color, #409eff);
   box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2);
+}
+
+/* 统一的表单样式 */
+.publish-form {
+  .form-item {
+    margin-bottom: 20px;
+  }
+  
+  :deep(.el-form-item__label) {
+    font-weight: 600;
+    color: var(--text-color, #333);
+    margin-bottom: 10px;
+    font-size: 14px;
+    line-height: 1.5;
+    display: block;
+  }
+}
+
+/* 表单占位符样式 */
+.publish-form :deep(.el-input__placeholder),
+.publish-form :deep(.el-textarea__placeholder),
+.publish-form :deep(.el-select__placeholder) {
+  color: rgba(0,0,0,0.3);
+  font-style: normal;
+}
+
+/* 自定义单选框样式 */
+.custom-radio {
+  display: flex;
+  gap: 24px;
+}
+
+.custom-radio :deep(.el-radio) {
+  font-size: 14px;
+  color: var(--text-color, #333);
+}
+
+.custom-radio :deep(.el-radio__inner) {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid rgba(64, 158, 255, 0.3);
+}
+
+.custom-radio :deep(.el-radio__inner:hover) {
+  border-color: var(--primary-color, #409eff);
+}
+
+.custom-radio :deep(.el-radio.is-checked .el-radio__inner) {
+  border-color: var(--primary-color, #409eff);
+  background: var(--primary-color, #409eff);
+}
+
+.custom-radio :deep(.el-radio.is-checked .el-radio__inner::after) {
+  background: white;
+}
+
+/* 弹窗底部 */
+.dialog-footer {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255,255,255,0.2);
+  margin-top: 8px;
+}
+
+/* 弹窗按钮样式 */
+.dialog-footer .glass-btn {
+  border: none;
+  border-radius: 12px;
+  padding: 12px 30px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 15px;
+  font-family: 'PingFang SC', sans-serif;
+  transition: all 0.3s ease;
+  outline: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.dialog-footer .glass-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  transition: left 0.5s;
+}
+
+.dialog-footer .glass-btn:hover::before {
+  left: 100%;
+}
+
+.dialog-footer .glass-btn.primary {
+  background: linear-gradient(135deg, var(--primary-color, #409eff), #66b1ff);
+  color: white;
+  box-shadow: 0 4px 15px rgba(64,158,255,0.3), 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.dialog-footer .glass-btn.primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(64,158,255,0.4), 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.dialog-footer .glass-btn.primary:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(64,158,255,0.3);
+}
+
+.dialog-footer .glass-btn.secondary {
+  background: rgba(255,255,255,0.4);
+  backdrop-filter: blur(5px);
+  color: var(--text-color, #333);
+  border: 1px solid rgba(255,255,255,0.5);
+}
+
+.dialog-footer .glass-btn.secondary:hover {
+  background: rgba(255,255,255,0.6);
+  border-color: rgba(255,255,255,0.7);
+}
+
+.dialog-footer .glass-btn.secondary:active {
+  background: rgba(255,255,255,0.3);
+}
+
+.dialog-footer .glass-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.dialog-footer .glass-btn:disabled:hover {
+  box-shadow: none;
 }
 </style>
