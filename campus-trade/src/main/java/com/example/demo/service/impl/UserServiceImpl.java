@@ -97,17 +97,22 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         }
 
         try {
+            // 1. 逻辑删除该用户发布的所有闲置商品，防止继续产生新交易
+            // （Goods 实体加了 @TableLogic，此操作会自动变为 UPDATE goods SET is_deleted=1 WHERE user_id = id）
             goodsMapper.delete(new QueryWrapper<Goods>().eq("user_id", id));
-            ordersMapper.delete(new QueryWrapper<Orders>().eq("buyer_id", id).or().eq("seller_id", id));
-            commentMapper.delete(new QueryWrapper<Comment>().eq("user_id", id));
 
+            // 2. 警告：绝对不要去删除 orders 和 comment！
+            // 历史交易不可磨灭，留存评价记录
+
+            // 3. 逻辑删除用户自身
+            // （自动变为 UPDATE user SET is_deleted=1 WHERE id = id）
             removeById(id);
 
-            log.info("【注销账号成功】用户及其所有关联数据已彻底清除。用户ID: {}", id);
-            return Result.success("注销成功，您的所有数据已删除");
+            log.info("【注销账号成功】用户及其商品已逻辑下线。历史交易已保护。用户ID: {}", id);
+            return Result.success("注销成功，您的账号已停用");
         } catch (Exception e) {
             log.error("【注销账号异常】用户ID: {}, 错误详情: {}", id, e.getMessage(), e);
-            throw new RuntimeException("数据库清理异常");
+            throw new RuntimeException("账号注销异常，请联系管理员");
         }
     }
 
