@@ -19,17 +19,49 @@
 
       <div class="content-area">
         <h2 class="category-title">{{ categories[activeIndex] }}</h2>
+
+        <!-- 搜索筛选栏 -->
+        <div class="filter-bar">
+          <div class="filter-item">
+            <span>价格：</span>
+            <el-input-number v-model="filterMinPrice" :min="0" :precision="0" placeholder="最低" size="small" controls-position="right" style="width: 100px" />
+            <span style="margin: 0 8px">-</span>
+            <el-input-number v-model="filterMaxPrice" :min="0" :precision="0" placeholder="最高" size="small" controls-position="right" style="width: 100px" />
+          </div>
+          <div class="filter-item">
+            <span>排序：</span>
+            <el-select v-model="sortBy" placeholder="默认排序" size="small" style="width: 140px" @change="onFilterChange">
+              <el-option label="最新发布" value="default" />
+              <el-option label="价格从低到高" value="price_asc" />
+              <el-option label="价格从高到低" value="price_desc" />
+            </el-select>
+          </div>
+          <el-button size="small" type="primary" @click="onFilterChange">筛选</el-button>
+        </div>
         
         <div class="goods-grid" v-if="goodsList.length > 0">
           <div v-for="item in goodsList" :key="item.id" class="glass-card item-card" @click="toDetail(item.id)">
             <div class="img-wrapper">
-              <img :src="(item.imageUrl || '').split(',')[0] || `https://picsum.photos/seed/${item.id}/300/300`" @error="handleImageError" />
+              <img :src="(item.imageUrl || '').split(',')[0] || `https://picsum.photos/seed/${item.id}/300/300`" loading="lazy" @error="handleImageError" />
+              <div :class="['condition-tag', `condition-${item.goodsCondition}`]">{{ getConditionText(item.goodsCondition) }}</div>
             </div>
             <div class="info">
               <h4 class="text-ellipsis">{{ item.title }}</h4>
               <p class="price">￥{{ item.price }}</p>
+              <p class="view-count">👁️ {{ item.viewCount || 0 }}</p>
             </div>
           </div>
+        </div>
+
+        <!-- 分页 -->
+        <div class="pagination-wrapper" v-if="total > 0">
+          <el-pagination
+            v-model:current-page="currentPage"
+            :page-size="pageSize"
+            :total="total"
+            layout="prev, pager, next"
+            @current-change="loadCategoryGoods"
+          />
         </div>
         
         <el-empty v-else description="这个分类下暂时没有宝贝哦，快去发布吧~"></el-empty>
@@ -58,6 +90,18 @@ const handleImageError = (event) => {
 
 // 🌟 准备一个空盒子装商品
 const goodsList = ref([])
+const currentPage = ref(1)
+const pageSize = ref(12)
+const total = ref(0)
+
+const filterMinPrice = ref(null)
+const filterMaxPrice = ref(null)
+const sortBy = ref('default')
+
+const onFilterChange = () => {
+  currentPage.value = 1
+  loadCategoryGoods()
+}
 
 // 🌟 页面刚进来的时候，自动去加载"全部好物"
 onMounted(() => {
@@ -67,6 +111,7 @@ onMounted(() => {
 // 🌟 当你点击左边不同分类时触发
 const handleCategoryChange = (index) => {
   activeIndex.value = index
+  currentPage.value = 1
   loadCategoryGoods() // 重新去找后端要货
 }
 
@@ -74,11 +119,19 @@ const handleCategoryChange = (index) => {
 const loadCategoryGoods = async () => {
   const currentCategory = categories[activeIndex.value]
   try {
-    const res = await request.get('/goods/list', {
-      params: { categoryName: currentCategory } // 告诉后端我要什么分类
-    })
+    const params = { 
+      categoryName: currentCategory,
+      page: currentPage.value,
+      pageSize: pageSize.value
+    }
+    if (filterMinPrice.value) params.minPrice = filterMinPrice.value
+    if (filterMaxPrice.value) params.maxPrice = filterMaxPrice.value
+    if (sortBy.value && sortBy.value !== 'default') params.sortBy = sortBy.value
+    
+    const res = await request.get('/goods/list', { params })
     if (res.data.code === 200) {
-      goodsList.value = res.data.data
+      goodsList.value = res.data.data.records
+      total.value = res.data.data.total
     }
   } catch (error) {
     console.error('加载分类商品失败', error)
@@ -88,6 +141,12 @@ const loadCategoryGoods = async () => {
 // 点击卡片去详情页
 const toDetail = (id) => {
   router.push(`/detail/${id}`)
+}
+
+// 商品新旧程度
+const conditionOptions = ['全新', '几乎全新', '轻微使用', '明显痕迹']
+const getConditionText = (condition) => {
+  return conditionOptions[condition] || '几乎全新'
 }
 </script>
 
@@ -114,6 +173,40 @@ const toDetail = (id) => {
 .info { padding: 10px 15px; }
 .text-ellipsis { margin: 0 0 5px; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .price { color: #f56c6c; margin: 0; font-weight: bold; }
+.view-count { font-size: 11px; opacity: 0.5; margin: 5px 0 0; }
+.img-wrapper { position: relative; }
+.condition-tag { position: absolute; top: 8px; right: 8px; padding: 3px 8px; font-size: 9px; border-radius: 6px; backdrop-filter: blur(5px); }
+.condition-0 { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+.condition-1 { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white; }
+.condition-2 { background: linear-gradient(135deg, #fc4a1a 0%, #f7b733 100%); color: white; }
+.condition-3 { background: linear-gradient(135deg, #434343 0%, #000000 100%); color: white; }
+
+.pagination-wrapper {
+  display: flex;
+  justify-content: center;
+  padding: 30px 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 15px 20px;
+  margin-bottom: 20px;
+  background: rgba(255,255,255,0.3);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  flex-wrap: wrap;
+}
+.filter-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #666;
+}
 
 @media (max-width: 768px) {
   .layout-box { flex-direction: column; }

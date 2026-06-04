@@ -31,6 +31,7 @@ public class OrdersServiceImpl extends ServiceImpl<OrdersMapper, Orders> impleme
         order.setSellerId(goods.getUserId());
         order.setPrice(goods.getPrice());
         order.setCreateTime(LocalDateTime.now());
+        order.setStatus(0); // 待发货
         this.save(order);
 
         goods.setStatus(1);

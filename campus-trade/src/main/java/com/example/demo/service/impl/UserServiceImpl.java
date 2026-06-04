@@ -12,9 +12,10 @@ import com.example.demo.mapper.*;
 import com.example.demo.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.DigestUtils;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
@@ -116,7 +117,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         }
     }
 
-    private static final String ADMIN_INVITE_CODE = "CampusTrade@Admin2026";
+    @Value("${app.admin-invite-code}")
+    private String adminInviteCode;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -127,7 +129,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         }
 
         if (dto.getRole() != null && dto.getRole() == 1) {
-            if (!StringUtils.hasText(dto.getInviteCode()) || !ADMIN_INVITE_CODE.equals(dto.getInviteCode())) {
+            if (!StringUtils.hasText(dto.getInviteCode()) || !adminInviteCode.equals(dto.getInviteCode())) {
                 throw new CustomException("管理员邀请码无效或为空，拒绝授权");
             }
         } else {
@@ -136,7 +138,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
         User newUser = new User();
         newUser.setUsername(dto.getUsername());
-        newUser.setPassword(DigestUtils.md5DigestAsHex(dto.getPassword().getBytes()));
+        newUser.setPassword(new BCryptPasswordEncoder().encode(dto.getPassword()));
         newUser.setRole(dto.getRole());
         newUser.setStatus(0);
         newUser.setName(dto.getName());

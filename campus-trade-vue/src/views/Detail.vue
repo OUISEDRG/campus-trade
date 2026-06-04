@@ -21,7 +21,8 @@
           <div class="price">￥{{ goods.price }}</div>
           
           <div class="meta-info">
-            <div class="meta-item"><label>成色：</label><span>九九新</span></div>
+            <div class="meta-item"><label>成色：</label><span :class="['condition-badge', `condition-${goods.goodsCondition}`]">{{ getConditionText(goods.goodsCondition) }}</span></div>
+            <div class="meta-item"><label>浏览量：</label><span>👁️ {{ goods.viewCount || 0 }}</span></div>
             <div class="meta-item">
               <label>状态：</label>
               <span v-if="goods.status === 0" class="status-active">在售</span>
@@ -43,6 +44,10 @@
               <div class="name">
                 <p>卖家ID: {{ goods.userId }}</p>
                 <span>实名认证已通过</span>
+              </div>
+              <div class="seller-rating" v-if="sellerRating > 0">
+                <el-rate v-model="sellerRating" disabled show-score text-color="#ff9900" />
+                <span class="review-count">({{ sellerReviewCount }}条评价)</span>
               </div>
             </div>
             <div v-if="goods.userId === currentUserId" class="seller-actions">
@@ -68,7 +73,15 @@
                 @click="handleBuy" 
               > 
                 立即购买 
-              </button> 
+              </button>
+              <button 
+                v-if="goods.status === 0 && goods.userId !== currentUserId" 
+                :class="['glass-btn', isFavorited ? 'secondary' : 'primary']" 
+                @click="toggleFavorite" 
+                style="margin-top: 10px;"
+              > 
+                {{ isFavorited ? '取消收藏' : '收藏宝贝' }}
+              </button>
               <button 
                 v-else 
                 class="glass-btn disabled full" 
@@ -140,8 +153,17 @@ const currentUserId = currentUser.id
 
 // 准备一个小盒子，用来装从后端拿回来的商品数据
 const goods = ref({})
+
+// 商品新旧程度
+const conditionOptions = ['全新', '几乎全新', '轻微使用', '明显痕迹']
+const getConditionText = (condition) => {
+  return conditionOptions[condition] || '几乎全新'
+}
 const newComment = ref('')
 const commentList = ref([])
+const sellerRating = ref(0)
+const sellerReviewCount = ref(0)
+const isFavorited = ref(false)
 
 onMounted(async () => {
   // 🌟 核心魔法：页面一打开，就带着当前页面的 ID 去找后端要数据
@@ -149,8 +171,10 @@ onMounted(async () => {
     const res = await request.get(`/goods/${route.params.id}`)
     if (res.data.code === 200) {
       goods.value = res.data.data // 把拿到的真实商品信息存进盒子里
+      loadSellerRating()
     }
     loadComments()
+    checkFavorite()
   } catch (error) {
     console.error('糟糕，获取商品详情失败啦:', error)
   }
@@ -210,6 +234,17 @@ const loadGoodsDetail = async () => {
   }
 }
 
+const loadSellerRating = async () => {
+  if (!goods.value.userId) return
+  try {
+    const res = await request.get(`/review/user/${goods.value.userId}`)
+    if (res.data.code === 200) {
+      sellerRating.value = res.data.data.avgRating
+      sellerReviewCount.value = res.data.data.totalReviews
+    }
+  } catch (e) { /* ignore */ }
+}
+
 const handleBuy = () => {
   const cu = userStore.currentUser || {}
   
@@ -239,6 +274,36 @@ const handleBuy = () => {
       ElMessage.error(res.data.message)
     }
   })
+}
+
+const checkFavorite = async () => {
+  if (!currentUserId) return
+  try {
+    const res = await request.get('/favorite/check', {
+      params: { userId: currentUserId, goodsId: route.params.id }
+    })
+    if (res.data.code === 200) isFavorited.value = res.data.data
+  } catch (e) { /* ignore */ }
+}
+
+const toggleFavorite = async () => {
+  if (isFavorited.value) {
+    const res = await request.delete('/favorite/remove', {
+      params: { userId: currentUserId, goodsId: route.params.id }
+    })
+    if (res.data.code === 200) {
+      isFavorited.value = false
+      ElMessage.success('已取消收藏')
+    }
+  } else {
+    const res = await request.post('/favorite/add', null, {
+      params: { userId: currentUserId, goodsId: route.params.id }
+    })
+    if (res.data.code === 200) {
+      isFavorited.value = true
+      ElMessage.success('收藏成功')
+    }
+  }
 }
 </script>
 
@@ -277,6 +342,11 @@ const handleBuy = () => {
 .price { font-size: 36px; color: #f56c6c; font-weight: 900; margin: 20px 0; }
 
 .meta-info { display: flex; gap: 20px; opacity: 0.6; margin-bottom: 30px; }
+.condition-badge { padding: 4px 12px; border-radius: 20px; font-size: 12px; color: white; }
+.condition-0 { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+.condition-1 { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); }
+.condition-2 { background: linear-gradient(135deg, #fc4a1a 0%, #f7b733 100%); }
+.condition-3 { background: linear-gradient(135deg, #434343 0%, #000000 100%); }
 
 .description h3 { border-left: 4px solid var(--primary-color, #409eff); padding-left: 10px; }
 .description p { line-height: 1.8; opacity: 0.8; white-space: pre-wrap; }

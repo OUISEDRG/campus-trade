@@ -8,6 +8,7 @@ import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Data
 @TableName("goods")
@@ -23,8 +24,13 @@ public class Goods {
     private String imageUrl;
     private Integer status;
     private String categoryName;
+    private Integer goodsCondition;
+    private Integer viewCount;
+    private Integer campusId;
 
     @TableLogic
     @TableField("is_deleted")
     private Integer isDeleted;
+    
+    private LocalDateTime createTime;
 }

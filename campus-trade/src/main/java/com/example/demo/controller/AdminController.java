@@ -86,4 +86,40 @@ public class AdminController {
             return Result.error("获取用户详情失败: " + e.getMessage());
         }
     }
+
+    @GetMapping("/dashboard/stats")
+    public Result<Map<String, Object>> getDashboardStats() {
+        Map<String, Object> stats = adminService.getDashboardStats();
+        return Result.success(stats);
+    }
+
+    @GetMapping("/dashboard/weekly")
+    public Result<List<Map<String, Object>>> getWeeklyStats() {
+        List<Map<String, Object>> stats = adminService.getWeeklyStats();
+        return Result.success(stats);
+    }
+
+    @GetMapping("/dashboard/monthly")
+    public Result<List<Map<String, Object>>> getMonthlyStats() {
+        List<Map<String, Object>> stats = adminService.getMonthlyStats();
+        return Result.success(stats);
+    }
+
+    @GetMapping("/dashboard/categories")
+    public Result<List<Map<String, Object>>> getCategoryStats() {
+        List<Map<String, Object>> stats = adminService.getCategoryStats();
+        return Result.success(stats);
+    }
+
+    @GetMapping("/dashboard/top-sellers")
+    public Result<List<Map<String, Object>>> getTopSellers() {
+        List<Map<String, Object>> sellers = adminService.getTopSellers();
+        return Result.success(sellers);
+    }
+
+    @GetMapping("/dashboard/recent-orders")
+    public Result<List<Map<String, Object>>> getRecentOrders() {
+        List<Map<String, Object>> orders = adminService.getRecentOrders();
+        return Result.success(orders);
+    }
 }

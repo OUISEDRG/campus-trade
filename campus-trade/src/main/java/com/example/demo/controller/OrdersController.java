@@ -3,8 +3,10 @@ package com.example.demo.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.example.demo.common.Result;
+import com.example.demo.entity.Goods;
 import com.example.demo.entity.Orders;
 import com.example.demo.entity.User;
+import com.example.demo.service.GoodsService;
 import com.example.demo.service.OrdersService;
 import com.example.demo.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +23,9 @@ public class OrdersController {
     
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private GoodsService goodsService;
 
     @PostMapping("/buy")
     public Result buy(@RequestParam Integer goodsId, @RequestParam Long buyerId) {
@@ -48,6 +53,8 @@ public class OrdersController {
         }
         
         Map<String, Object> buyerInfo = new HashMap<>();
+        buyerInfo.put("orderId", order.getId());
+        buyerInfo.put("orderStatus", order.getStatus() != null ? order.getStatus() : 0);
         buyerInfo.put("name", buyer.getName() != null ? buyer.getName() : buyer.getUsername());
         buyerInfo.put("phone", buyer.getPhone() != null ? buyer.getPhone() : "未留存联系电话");
         buyerInfo.put("address", buyer.getCollege() != null ? buyer.getCollege() : "未填写详细收货地址");
@@ -55,5 +62,57 @@ public class OrdersController {
         buyerInfo.put("postalCode", "校园面交免邮编");
         
         return Result.success(buyerInfo);
+    }
+
+    @PutMapping("/{id}/ship")
+    public Result<?> shipOrder(@PathVariable Integer id, @RequestParam Long sellerId) {
+        try {
+            Orders order = ordersService.getById(id);
+            if (order == null) return Result.error("订单不存在");
+            if (!order.getSellerId().equals(sellerId)) return Result.error("无权操作此订单");
+            if (order.getStatus() != null && order.getStatus() != 0) return Result.error("订单状态不允许发货");
+            order.setStatus(1);
+            ordersService.updateById(order);
+            return Result.success("发货成功");
+        } catch (Exception e) {
+            return Result.error(e.getMessage());
+        }
+    }
+
+    @PutMapping("/{id}/receive")
+    public Result<?> receiveOrder(@PathVariable Integer id, @RequestParam Long buyerId) {
+        try {
+            Orders order = ordersService.getById(id);
+            if (order == null) return Result.error("订单不存在");
+            if (!order.getBuyerId().equals(buyerId)) return Result.error("无权操作此订单");
+            if (order.getStatus() == null || order.getStatus() != 1) return Result.error("订单状态不允许收货");
+            order.setStatus(2);
+            ordersService.updateById(order);
+            return Result.success("确认收货成功");
+        } catch (Exception e) {
+            return Result.error(e.getMessage());
+        }
+    }
+
+    @PutMapping("/{id}/cancel")
+    public Result<?> cancelOrder(@PathVariable Integer id, @RequestParam Long userId) {
+        try {
+            Orders order = ordersService.getById(id);
+            if (order == null) return Result.error("订单不存在");
+            if (!order.getBuyerId().equals(userId) && !order.getSellerId().equals(userId))
+                return Result.error("无权操作此订单");
+            if (order.getStatus() != null && order.getStatus() != 0) return Result.error("订单状态不允许取消");
+            order.setStatus(3);
+            ordersService.updateById(order);
+            // 恢复商品状态为在售
+            Goods goods = goodsService.getById(order.getGoodsId());
+            if (goods != null) {
+                goods.setStatus(0);
+                goodsService.updateById(goods);
+            }
+            return Result.success("订单已取消");
+        } catch (Exception e) {
+            return Result.error(e.getMessage());
+        }
     }
 }

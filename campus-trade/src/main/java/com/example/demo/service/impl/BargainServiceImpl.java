@@ -1,0 +1,153 @@
+package com.example.demo.service.impl;
+
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.example.demo.entity.Bargain;
+import com.example.demo.entity.BargainRecord;
+import com.example.demo.entity.Goods;
+import com.example.demo.exception.CustomException;
+import com.example.demo.mapper.BargainMapper;
+import com.example.demo.mapper.BargainRecordMapper;
+import com.example.demo.mapper.GoodsMapper;
+import com.example.demo.service.BargainService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Random;
+
+@Service
+public class BargainServiceImpl extends ServiceImpl<BargainMapper, Bargain> implements BargainService {
+
+    @Autowired
+    private BargainMapper bargainMapper;
+    
+    @Autowired
+    private BargainRecordMapper bargainRecordMapper;
+    
+    @Autowired
+    private GoodsMapper goodsMapper;
+    
+    private final Random random = new Random();
+
+    @Override
+    @Transactional
+    public Bargain createBargain(Long goodsId, Long userId, BigDecimal targetPrice, Integer maxParticipants) {
+        Goods goods = goodsMapper.selectById(goodsId);
+        if (goods == null) {
+            throw new CustomException("商品不存在");
+        }
+        
+        if (targetPrice.compareTo(goods.getPrice()) >= 0) {
+            throw new CustomException("目标价格必须低于原价");
+        }
+        
+        Bargain bargain = new Bargain();
+        bargain.setGoodsId(goodsId);
+        bargain.setUserId(userId);
+        bargain.setOriginalPrice(goods.getPrice());
+        bargain.setCurrentPrice(goods.getPrice());
+        bargain.setTargetPrice(targetPrice);
+        bargain.setStatus(0);
+        bargain.setMaxParticipants(maxParticipants);
+        bargain.setCurrentParticipants(0);
+        bargain.setStartTime(LocalDateTime.now());
+        bargain.setEndTime(LocalDateTime.now().plusDays(1));
+        bargain.setCreateTime(LocalDateTime.now());
+        bargain.setIsDeleted(0);
+        
+        bargainMapper.insert(bargain);
+        return bargain;
+    }
+
+    @Override
+    @Transactional
+    public BargainRecord participateBargain(Long bargainId, Long userId) {
+        Bargain bargain = bargainMapper.selectById(bargainId);
+        if (bargain == null || bargain.getIsDeleted() == 1) {
+            throw new CustomException("砍价活动不存在");
+        }
+        
+        if (bargain.getStatus() != 0) {
+            throw new CustomException("砍价活动已结束或已取消");
+        }
+        
+        if (bargain.getCurrentParticipants() >= bargain.getMaxParticipants()) {
+            throw new CustomException("参与人数已满");
+        }
+        
+        QueryWrapper<BargainRecord> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("bargain_id", bargainId).eq("user_id", userId);
+        if (bargainRecordMapper.selectCount(queryWrapper) > 0) {
+            throw new CustomException("您已参与过此砍价活动");
+        }
+        
+        BigDecimal range = bargain.getCurrentPrice().subtract(bargain.getTargetPrice());
+        BigDecimal minCut = range.multiply(new BigDecimal("0.05"));
+        BigDecimal maxCut = range.multiply(new BigDecimal("0.2"));
+        
+        double randomValue = random.nextDouble();
+        BigDecimal cutAmount = minCut.add(maxCut.subtract(minCut).multiply(BigDecimal.valueOf(randomValue)));
+        cutAmount = cutAmount.setScale(2, RoundingMode.HALF_UP);
+        
+        BigDecimal afterPrice = bargain.getCurrentPrice().subtract(cutAmount);
+        if (afterPrice.compareTo(bargain.getTargetPrice()) < 0) {
+            afterPrice = bargain.getTargetPrice();
+            cutAmount = bargain.getCurrentPrice().subtract(afterPrice);
+        }
+        
+        bargain.setCurrentPrice(afterPrice);
+        bargain.setCurrentParticipants(bargain.getCurrentParticipants() + 1);
+        
+        if (afterPrice.compareTo(bargain.getTargetPrice()) == 0) {
+            bargain.setStatus(1);
+        }
+        
+        bargainMapper.updateById(bargain);
+        
+        BargainRecord record = new BargainRecord();
+        record.setBargainId(bargainId);
+        record.setUserId(userId);
+        record.setCutAmount(cutAmount);
+        record.setAfterPrice(afterPrice);
+        record.setCreateTime(LocalDateTime.now());
+        
+        bargainRecordMapper.insert(record);
+        return record;
+    }
+
+    @Override
+    public Bargain getBargainById(Long bargainId) {
+        return bargainMapper.selectById(bargainId);
+    }
+
+    @Override
+    public List<Bargain> getBargainsByGoodsId(Long goodsId) {
+        QueryWrapper<Bargain> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("goods_id", goodsId).eq("is_deleted", 0);
+        return bargainMapper.selectList(queryWrapper);
+    }
+
+    @Override
+    public List<BargainRecord> getBargainRecords(Long bargainId) {
+        QueryWrapper<BargainRecord> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("bargain_id", bargainId).orderByDesc("create_time");
+        return bargainRecordMapper.selectList(queryWrapper);
+    }
+
+    @Override
+    @Transactional
+    public boolean cancelBargain(Long bargainId) {
+        Bargain bargain = bargainMapper.selectById(bargainId);
+        if (bargain == null) {
+            return false;
+        }
+        bargain.setStatus(2);
+        bargain.setIsDeleted(1);
+        return bargainMapper.updateById(bargain) > 0;
+    }
+}

@@ -35,6 +35,14 @@
         <el-icon><ArrowRight /></el-icon>
       </div>
 
+      <div class="glass-card action-item" @click="openFavorites">
+        <div class="item-left">
+          <el-icon><Star /></el-icon>
+          <span>我的收藏</span>
+        </div>
+        <el-icon><ArrowRight /></el-icon>
+      </div>
+
       <div class="glass-card action-item" @click="router.push('/home')">
         <div class="item-left">
           <el-icon><Shop /></el-icon>
@@ -75,6 +83,13 @@
             <p class="price">￥{{ item.price }}</p>
           </div>
 
+          <div class="order-status" v-if="listTitle === '我卖出的' || listTitle === '我买到的'">
+            <el-tag v-if="item.orderStatus === 0" type="warning" size="small">待发货</el-tag>
+            <el-tag v-else-if="item.orderStatus === 1" type="primary" size="small">已发货</el-tag>
+            <el-tag v-else-if="item.orderStatus === 2" type="success" size="small">已完成</el-tag>
+            <el-tag v-else-if="item.orderStatus === 3" type="info" size="small">已取消</el-tag>
+          </div>
+
           <div class="action-buttons" v-if="listTitle === '我发布的'">
             <span v-if="item.status === 1" class="status-badge">
               <el-tag type="info" size="small">已下架</el-tag>
@@ -83,6 +98,9 @@
               <button class="small-btn edit-btn" @click.stop="openEdit(item)">修改</button>
               <button class="small-btn delete-btn" @click.stop="handleDelete(item, index)">下架商品</button>
             </template>
+          </div>
+          <div class="action-buttons" v-if="listTitle === '我的收藏'">
+            <button class="small-btn delete-btn" @click.stop="handleUnfavorite(item, index)">取消收藏</button>
           </div>
           <el-icon v-else class="arrow"><ArrowRight /></el-icon>
         </div>
@@ -147,10 +165,23 @@
           <span class="label">交易时间：</span>
           <span class="value text-muted">{{ buyerInfo.orderTime?.replace('T', ' ') }}</span>
         </div>
+        <div class="info-row">
+          <span class="label">订单状态：</span>
+          <span class="value">
+            <el-tag v-if="buyerInfo.orderStatus === 0" type="warning">待发货</el-tag>
+            <el-tag v-else-if="buyerInfo.orderStatus === 1" type="primary">已发货</el-tag>
+            <el-tag v-else-if="buyerInfo.orderStatus === 2" type="success">已完成</el-tag>
+            <el-tag v-else-if="buyerInfo.orderStatus === 3" type="info">已取消</el-tag>
+            <span v-else>未知</span>
+          </span>
+        </div>
       </div>
       <el-empty v-else description="暂无买家信息~"></el-empty>
       <template #footer>
-        <button class="glass-btn primary full" @click="showBuyerDialog = false">关闭窗口</button>
+        <div style="display: flex; gap: 12px; justify-content: flex-end;">
+          <button v-if="buyerInfo?.orderStatus === 0" class="glass-btn primary" @click="handleShipOrder">确认发货</button>
+          <button class="glass-btn secondary" @click="showBuyerDialog = false">关闭窗口</button>
+        </div>
       </template>
     </el-dialog>
 
@@ -180,13 +211,36 @@
       </template>
     </el-dialog>
 
+    <el-dialog v-model="showReviewDialog" title="评价交易" width="90%" max-width="400px" class="glass-dialog">
+      <div class="review-form">
+        <div class="review-target">评价对象：{{ reviewTargetName }}</div>
+        <div class="rating-row">
+          <span>评分：</span>
+          <el-rate v-model="reviewForm.rating" />
+        </div>
+        <el-input 
+          v-model="reviewForm.content" 
+          type="textarea" 
+          :rows="3" 
+          placeholder="分享您的交易体验..." 
+          style="margin-top: 15px"
+        />
+      </div>
+      <template #footer>
+        <div class="dialog-footer">
+          <button class="glass-btn secondary" @click="showReviewDialog = false">取消</button>
+          <button class="glass-btn primary" @click="submitReview">提交评价</button>
+        </div>
+      </template>
+    </el-dialog>
+
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ArrowRight, SwitchButton, EditPen, Shop, CircleClose, Delete, Camera } from '@element-plus/icons-vue'
+import { ArrowRight, SwitchButton, EditPen, Shop, CircleClose, Delete, Camera, Star } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import request from '../utils/request'
 import { offShelvesGoods } from '../api/goods'
@@ -211,6 +265,10 @@ const buyerInfo = ref(null)
 
 const showEditProfileDialog = ref(false)
 const profileFormRef = ref(null)
+
+const showReviewDialog = ref(false)
+const reviewTargetName = ref('')
+const reviewForm = reactive({ orderId: null, reviewerId: null, targetUserId: null, rating: 0, content: '' })
 
 const profileForm = reactive({
   id: null,
@@ -257,10 +315,39 @@ const openList = async (type, title) => {
       params: { userId: user.value.id, type: type }
     })
     if (res.data.code === 200) {
-      detailList.value = res.data.data
+      const items = res.data.data
+      // 对于卖出和买到的，需要加载订单状态
+      if (type === 'sold' || type === 'bought') {
+        const enrichedItems = await Promise.all(items.map(async (item) => {
+          try {
+            const orderRes = await request.get(`/orders/buyerInfo/${item.id}`)
+            if (orderRes.data.code === 200) {
+              return { ...item, orderInfo: orderRes.data.data, orderStatus: orderRes.data.data.orderStatus }
+            }
+          } catch (e) { /* ignore */ }
+          return item
+        }))
+        detailList.value = enrichedItems
+      } else {
+        detailList.value = items
+      }
     }
   } catch (error) {
     ElMessage.error('获取列表失败啦')
+  }
+}
+
+const handleShipOrder = async () => {
+  try {
+    const res = await request.put(`/orders/${buyerInfo.value.orderId}/ship`, null, {
+      params: { sellerId: user.value.id }
+    })
+    if (res.data.code === 200) {
+      ElMessage.success('发货成功！')
+      buyerInfo.value.orderStatus = 1
+    }
+  } catch (e) {
+    ElMessage.error('操作失败')
   }
 }
 
@@ -282,8 +369,44 @@ const handleItemClick = async (item) => {
     } catch (error) {
       ElMessage.error('网络开了个小差，请稍后再试')
     }
+  } else if (listTitle.value === '我买到的') {
+    try {
+      const res = await request.get(`/orders/buyerInfo/${item.id}`)
+      if (res.data.code === 200) {
+        item.orderInfo = res.data.data
+        openReview(item)
+      }
+    } catch (e) {
+      goToDetail(item.id)
+    }
   } else {
     goToDetail(item.id)
+  }
+}
+
+const openReview = (item) => {
+  reviewTargetName.value = '卖家 ' + (item.orderInfo?.sellerId || '未知')
+  reviewForm.orderId = item.orderInfo?.orderId
+  reviewForm.reviewerId = user.value.id
+  reviewForm.targetUserId = item.orderInfo?.sellerId || item.userId
+  reviewForm.rating = 0
+  reviewForm.content = ''
+  showReviewDialog.value = true
+}
+
+const submitReview = async () => {
+  if (reviewForm.rating === 0) {
+    ElMessage.warning('请给个评分吧')
+    return
+  }
+  try {
+    const res = await request.post('/review/add', reviewForm)
+    if (res.data.code === 200) {
+      ElMessage.success('评价成功！')
+      showReviewDialog.value = false
+    }
+  } catch (e) {
+    ElMessage.error('评价失败')
   }
 }
 
@@ -401,6 +524,36 @@ const handleDeleteAccount = () => {
       loading.close()
     }
   }).catch(() => {})
+}
+
+const openFavorites = async () => {
+  listTitle.value = '我的收藏'
+  showListDialog.value = true
+  detailList.value = []
+  try {
+    const res = await request.get('/favorite/list', {
+      params: { userId: user.value.id }
+    })
+    if (res.data.code === 200) {
+      detailList.value = res.data.data
+    }
+  } catch (error) {
+    ElMessage.error('获取收藏列表失败')
+  }
+}
+
+const handleUnfavorite = async (item, index) => {
+  try {
+    const res = await request.delete('/favorite/remove', {
+      params: { userId: user.value.id, goodsId: item.id }
+    })
+    if (res.data.code === 200) {
+      ElMessage.success('已取消收藏')
+      detailList.value.splice(index, 1)
+    }
+  } catch (e) {
+    ElMessage.error('操作失败')
+  }
 }
 </script>
 

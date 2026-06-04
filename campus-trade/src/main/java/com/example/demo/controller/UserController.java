@@ -11,7 +11,9 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.util.DigestUtils;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -31,7 +33,7 @@ public class UserController {
     }
 
     @PostMapping("/login")
-    public Result<UserLoginResponseDTO> login(@RequestBody UserLoginDTO loginDTO) {
+    public Result<UserLoginResponseDTO> login(@Validated @RequestBody UserLoginDTO loginDTO) {
         log.info("【登录请求】用户名: {}", loginDTO.getUsername());
         
         try {
@@ -45,8 +47,27 @@ public class UserController {
                 return Result.error("账号不存在哦！");
             }
             
-            String md5Password = DigestUtils.md5DigestAsHex(loginDTO.getPassword().getBytes());
-            if (!user.getPassword().equals(md5Password)) {
+            BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+            boolean passwordMatch = false;
+
+            // 判断存储的密码格式：BCrypt 以 $2a$ / $2b$ / $2y$ 开头
+            String storedPassword = user.getPassword();
+            if (storedPassword != null && storedPassword.startsWith("$2")) {
+                // BCrypt 加密的密码，直接比对
+                passwordMatch = encoder.matches(loginDTO.getPassword(), storedPassword);
+            } else {
+                // MD5 加密的旧密码，用 MD5 比对兼容老用户
+                String md5Password = DigestUtils.md5DigestAsHex(loginDTO.getPassword().getBytes());
+                passwordMatch = storedPassword != null && storedPassword.equals(md5Password);
+                if (passwordMatch) {
+                    // 自动升级为 BCrypt
+                    user.setPassword(encoder.encode(loginDTO.getPassword()));
+                    userService.updateById(user);
+                    log.info("【密码升级】用户 {} 的密码已从 MD5 升级为 BCrypt", loginDTO.getUsername());
+                }
+            }
+
+            if (!passwordMatch) {
                 log.warn("【登录失败】密码错误: {}", loginDTO.getUsername());
                 return Result.error("密码写错啦！");
             }
@@ -68,7 +89,7 @@ public class UserController {
     }
 
     @PostMapping("/register")
-    public Result<String> register(@RequestBody UserRegisterDTO registerDTO) {
+    public Result<String> register(@Validated @RequestBody UserRegisterDTO registerDTO) {
         com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<User> queryWrapper = new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
         queryWrapper.eq(User::getUsername, registerDTO.getUsername());
         User existUser = userService.getOne(queryWrapper);
@@ -80,8 +101,7 @@ public class UserController {
         User newUser = new User();
         newUser.setUsername(registerDTO.getUsername());
         
-        String md5Password = DigestUtils.md5DigestAsHex(registerDTO.getPassword().getBytes());
-        newUser.setPassword(md5Password);
+        newUser.setPassword(new BCryptPasswordEncoder().encode(registerDTO.getPassword()));
         
         newUser.setName(registerDTO.getName());
         newUser.setStudentId(registerDTO.getStudentId());

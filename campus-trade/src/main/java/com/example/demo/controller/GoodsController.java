@@ -7,6 +7,7 @@ import com.example.demo.service.GoodsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @RestController
@@ -50,11 +51,12 @@ public class GoodsController {
         queryWrapper.isNotNull("image_url");
         queryWrapper.ne("image_url", "");
         
-        // 🌟 终极魔法：让 MySQL 数据库像洗牌一样打乱顺序，并且只抽出 4 张牌！
-        queryWrapper.last("ORDER BY RAND() LIMIT 4");
+        // 在 Java 层面随机抽取 4 条，避免 SQL 注入风险
+        List<Goods> allGoods = goodsService.list(queryWrapper);
+        java.util.Collections.shuffle(allGoods);
+        List<Goods> carousel = allGoods.stream().limit(4).collect(java.util.stream.Collectors.toList());
         
-        List list = goodsService.list(queryWrapper);
-        return Result.success(list);
+        return Result.success(carousel);
     }
 
     @DeleteMapping("/delete/{id}")
@@ -87,31 +89,62 @@ public class GoodsController {
 
     @GetMapping({"/getAll", "/list"})
     public Result getAllGoods(@RequestParam(required = false) String keyword, 
-                                           @RequestParam(required = false) String categoryName) {
-        com.baomidou.mybatisplus.core.conditions.query.QueryWrapper queryWrapper = new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper();
+                                           @RequestParam(required = false) String categoryName,
+                                           @RequestParam(defaultValue = "1") Integer page,
+                                           @RequestParam(defaultValue = "12") Integer pageSize,
+                                           @RequestParam(required = false) BigDecimal minPrice,
+                                           @RequestParam(required = false) BigDecimal maxPrice,
+                                           @RequestParam(required = false) String sortBy,
+                                           @RequestParam(required = false) Integer campusId) {
+        com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<Goods> queryWrapper = new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<>();
         
         // 🌟 只显示上架中的商品（status = 0）
         queryWrapper.eq("status", 0);
         
         if (keyword != null && !keyword.trim().isEmpty()) {
-            queryWrapper.like("title", keyword);
-            queryWrapper.or();
-            queryWrapper.like("description", keyword);
+            queryWrapper.and(w -> w.like("title", keyword).or().like("description", keyword));
         }
 
         if (categoryName != null && !categoryName.equals("全部好物") && !categoryName.trim().isEmpty()) {
             queryWrapper.eq("category_name", categoryName);
         }
         
-        queryWrapper.orderByDesc("id");
-        List list = goodsService.list(queryWrapper);
-        return Result.success(list);
+        // 价格区间筛选
+        if (minPrice != null) {
+            queryWrapper.ge("price", minPrice);
+        }
+        if (maxPrice != null) {
+            queryWrapper.le("price", maxPrice);
+        }
+        
+        // 校区筛选
+        if (campusId != null && campusId > 0) {
+            queryWrapper.eq("campus_id", campusId);
+        }
+        
+        // 排序
+        if ("price_asc".equals(sortBy)) {
+            queryWrapper.orderByAsc("price");
+        } else if ("price_desc".equals(sortBy)) {
+            queryWrapper.orderByDesc("price");
+        } else {
+            queryWrapper.orderByDesc("id"); // 默认最新
+        }
+        
+        // 分页查询
+        com.baomidou.mybatisplus.extension.plugins.pagination.Page<Goods> goodsPage = 
+            new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(page, pageSize);
+        com.baomidou.mybatisplus.core.metadata.IPage<Goods> result = goodsService.page(goodsPage, queryWrapper);
+        
+        return Result.success(result);
     }
 
     @GetMapping("/{id}")
     public Result getGoodsById(@PathVariable Integer id) {
         Goods goods = goodsService.getById(id);
         if (goods != null) {
+            goods.setViewCount(goods.getViewCount() != null ? goods.getViewCount() + 1 : 1);
+            goodsService.updateById(goods);
             return Result.success(goods);
         } else {
             return Result.error("找不到该商品");
