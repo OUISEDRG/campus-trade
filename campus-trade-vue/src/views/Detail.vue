@@ -91,10 +91,61 @@
               </button>
             </div>
           </div>
+
+          <!-- 砍价与交换操作区 -->
+          <div v-if="goods.status === 0 && goods.userId !== currentUserId" class="action-extras">
+            <div class="extra-buttons">
+              <button class="glass-btn bargain-btn" @click="showBargainDialog = true">
+                🔨 发起砍价
+              </button>
+              <button class="glass-btn exchange-btn" @click="showExchangeDialog = true">
+                🔄 以旧换新
+              </button>
+            </div>
+          </div>
         </div>
         
       </div>
     </div>
+
+    <!-- 砍价弹窗 -->
+    <el-dialog v-model="showBargainDialog" title="发起砍价" width="90%" max-width="420px" class="glass-dialog">
+      <el-form label-position="top">
+        <el-form-item label="目标价格（你希望砍到的价格）">
+          <div class="price-input-wrap">
+            <span class="price-prefix">￥</span>
+            <el-input-number v-model="bargainForm.targetPrice" :min="0.01" :max="goods.price" :precision="2" class="flex-1" />
+          </div>
+          <span class="form-hint">原价 ￥{{ goods.price }}，最高可砍至 ￥{{ goods.price }}</span>
+        </el-form-item>
+        <el-form-item label="最多参与人数">
+          <el-input-number v-model="bargainForm.maxParticipants" :min="2" :max="50" class="w-full" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <button class="glass-btn secondary" @click="showBargainDialog = false">取消</button>
+        <button class="glass-btn primary" @click="submitBargain">发起砍价</button>
+      </template>
+    </el-dialog>
+
+    <!-- 以旧换新弹窗 -->
+    <el-dialog v-model="showExchangeDialog" title="以旧换新" width="90%" max-width="420px" class="glass-dialog">
+      <el-form label-position="top">
+        <el-form-item label="选择你的商品（用哪个商品来交换）">
+          <el-select v-model="exchangeForm.myGoodsId" placeholder="请选择你的商品" class="w-full" filterable>
+            <el-option v-for="g in myGoodsList" :key="g.id" :label="`${g.title} (￥${g.price})`" :value="g.id" />
+          </el-select>
+          <span class="form-hint" v-if="myGoodsList.length === 0">你还没有在售商品，请先发布商品</span>
+        </el-form-item>
+        <el-form-item label="留言（可选）">
+          <el-input v-model="exchangeForm.message" type="textarea" :rows="2" placeholder="告诉对方你想交换的理由..." />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <button class="glass-btn secondary" @click="showExchangeDialog = false">取消</button>
+        <button class="glass-btn primary" @click="submitExchange">发送交换请求</button>
+      </template>
+    </el-dialog>
 
     <!-- 留言区 -->
     <div class="glass-card comment-section">
@@ -135,13 +186,15 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, reactive, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft } from '@element-plus/icons-vue'
 import { ElMessageBox, ElMessage } from 'element-plus'
 import request from '../utils/request'
 import ChatWindow from '../components/ChatWindow.vue'
 import { offShelvesGoods } from '../api/goods'
+import { createBargain, getBargainsByGoods } from '../api/bargain'
+import { createExchange } from '../api/exchange'
 import { useUserStore } from '../stores/user'
 
 const route = useRoute()
@@ -164,6 +217,16 @@ const commentList = ref([])
 const sellerRating = ref(0)
 const sellerReviewCount = ref(0)
 const isFavorited = ref(false)
+
+// 砍价相关
+const showBargainDialog = ref(false)
+const bargainForm = reactive({ targetPrice: null, maxParticipants: 5 })
+const goodsBargains = ref([])
+
+// 换新相关
+const showExchangeDialog = ref(false)
+const exchangeForm = reactive({ myGoodsId: null, message: '' })
+const myGoodsList = ref([])
 
 onMounted(async () => {
   // 🌟 核心魔法：页面一打开，就带着当前页面的 ID 去找后端要数据
@@ -305,6 +368,78 @@ const toggleFavorite = async () => {
     }
   }
 }
+
+// --- 砍价功能 ---
+const loadGoodsBargains = async () => {
+  try {
+    const res = await getBargainsByGoods(route.params.id)
+    if (res.data.code === 200 && res.data.data) {
+      goodsBargains.value = Array.isArray(res.data.data) ? res.data.data : [res.data.data]
+    }
+  } catch (e) { /* skip */ }
+}
+
+const submitBargain = async () => {
+  if (!bargainForm.targetPrice || bargainForm.targetPrice <= 0) {
+    return ElMessage.warning('请输入有效的目标价格')
+  }
+  if (bargainForm.targetPrice >= goods.value.price) {
+    return ElMessage.warning('目标价格必须低于商品原价')
+  }
+  try {
+    const res = await createBargain({
+      goodsId: Number(route.params.id),
+      userId: currentUserId,
+      targetPrice: bargainForm.targetPrice,
+      maxParticipants: bargainForm.maxParticipants
+    })
+    if (res.data.code === 200) {
+      ElMessage.success('砍价活动已发起！快邀请好友来帮你砍价吧')
+      showBargainDialog.value = false
+      bargainForm.targetPrice = null
+      bargainForm.maxParticipants = 5
+      loadGoodsBargains()
+    }
+  } catch (e) { /* handled by interceptor */ }
+}
+
+// --- 以旧换新功能 ---
+const loadMyGoods = async () => {
+  try {
+    const res = await request.get('/goods/list', {
+      params: { userId: currentUserId, page: 1, pageSize: 100 }
+    })
+    if (res.data.code === 200) {
+      const all = res.data.data.records || []
+      myGoodsList.value = all.filter(g => g.status === 0 && g.id !== Number(route.params.id))
+    }
+  } catch (e) { /* skip */ }
+}
+
+const submitExchange = async () => {
+  if (!exchangeForm.myGoodsId) {
+    return ElMessage.warning('请选择你要交换的商品')
+  }
+  try {
+    const res = await createExchange({
+      initiatorId: currentUserId,
+      targetUserId: goods.value.userId,
+      initiatorGoodsId: exchangeForm.myGoodsId,
+      targetGoodsId: Number(route.params.id),
+      message: exchangeForm.message
+    })
+    if (res.data.code === 200) {
+      ElMessage.success('交换请求已发送！请等待卖家回复')
+      showExchangeDialog.value = false
+      exchangeForm.myGoodsId = null
+      exchangeForm.message = ''
+    }
+  } catch (e) { /* handled by interceptor */ }
+}
+
+// 监听弹窗打开，加载数据
+watch(showBargainDialog, (val) => { if (val) loadGoodsBargains() })
+watch(showExchangeDialog, (val) => { if (val) loadMyGoods() })
 </script>
 
 <style scoped>
@@ -378,6 +513,40 @@ const toggleFavorite = async () => {
 .glass-btn.danger:hover {
   background: #f56c6c;
 }
+.glass-btn.secondary {
+  background: rgba(255,255,255,0.4);
+  backdrop-filter: blur(5px);
+  color: #333;
+  border: 1px solid rgba(255,255,255,0.5);
+}
+.glass-btn.secondary:hover { background: rgba(255,255,255,0.6); }
+
+/* 砍价与交换操作区 */
+.action-extras { margin-top: 16px; }
+.extra-buttons { display: flex; gap: 10px; }
+.glass-btn.bargain-btn {
+  flex: 1; background: linear-gradient(135deg, #e6a23c, #f0ad4e); color: white;
+  box-shadow: 0 4px 12px rgba(230, 162, 60, 0.3);
+}
+.glass-btn.bargain-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(230, 162, 60, 0.4); }
+.glass-btn.exchange-btn {
+  flex: 1; background: linear-gradient(135deg, #67c23a, #85ce61); color: white;
+  box-shadow: 0 4px 12px rgba(103, 194, 58, 0.3);
+}
+.glass-btn.exchange-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(103, 194, 58, 0.4); }
+
+/* 弹窗通用 */
+.glass-dialog :deep(.el-dialog) {
+  background: rgba(255,255,255,0.7);
+  backdrop-filter: blur(20px);
+  border-radius: 24px;
+  border: 1px solid rgba(255,255,255,0.4);
+}
+.w-full { width: 100%; }
+.flex-1 { flex: 1; }
+.price-input-wrap { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: rgba(255,255,255,0.5); border-radius: 12px; border: 1px solid rgba(255,255,255,0.3); }
+.price-prefix { font-size: 20px; font-weight: 700; color: #f56c6c; }
+.form-hint { display: block; font-size: 12px; color: #999; margin-top: 4px; }
 
 .status-active { color: #67c23a; font-weight: bold; }
 .status-off { color: #f56c6c; font-weight: bold; }

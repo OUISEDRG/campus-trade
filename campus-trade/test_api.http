@@ -1,0 +1,81 @@
+### 测试数据仪表盘接口 - 总体统计
+GET http://localhost:8080/admin/dashboard/stats
+
+###
+
+### 测试数据仪表盘接口 - 周统计
+GET http://localhost:8080/admin/dashboard/weekly
+
+###
+
+### 测试数据仪表盘接口 - 月统计
+GET http://localhost:8080/admin/dashboard/monthly
+
+###
+
+### 测试数据仪表盘接口 - 分类统计
+GET http://localhost:8080/admin/dashboard/categories
+
+###
+
+### 测试数据仪表盘接口 - TOP卖家
+GET http://localhost:8080/admin/dashboard/top-sellers
+
+###
+
+### 测试数据仪表盘接口 - 最近订单
+GET http://localhost:8080/admin/dashboard/recent-orders
+
+###
+
+### 测试消息模板列表
+GET http://localhost:8080/message/templates
+
+###
+
+### 获取微信二维码链接
+GET http://localhost:8080/wechat/qrcode-url?redirectUri=http://localhost:8080/callback
+
+###
+
+### 测试砍价功能 - 创建砍价
+POST http://localhost:8080/bargain/create
+Content-Type: application/json
+
+{
+  "goodsId": 1,
+  "userId": 9,
+  "targetPrice": 50.00,
+  "maxParticipants": 5
+}
+
+###
+
+### 测试砍价功能 - 查询砍价
+GET http://localhost:8080/bargain/1
+
+###
+
+### 测试砍价功能 - 参与砍价
+POST http://localhost:8080/bargain/participate
+Content-Type: application/json
+
+{
+  "bargainId": 1,
+  "userId": 1
+}
+
+###
+
+### 测试交换功能 - 查询用户交换记录
+GET http://localhost:8080/exchange/user/9
+
+###
+
+### 测试消息功能 - 用户未读消息
+GET http://localhost:8080/message/user/9/unread
+
+###
+
+### 测试消息功能 - 用户所有消息
+GET http://localhost:8080/message/user/9

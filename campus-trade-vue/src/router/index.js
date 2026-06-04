@@ -7,9 +7,7 @@ const routes = [
   { path: '/detail/:id', component: () => import('../views/Detail.vue') },
   { path: '/me', component: () => import('../views/Me.vue') },
   { path: '/admin', component: () => import('../views/Admin.vue') },
-  { path: '/messages', component: () => import('../views/Messages.vue') },
-  { path: '/bargain', component: () => import('../views/Bargain.vue') },
-  { path: '/exchange', component: () => import('../views/Exchange.vue') },
+  { path: '/messages', redirect: '/notifications' },
   { path: '/notifications', component: () => import('../views/Notifications.vue') }
 ]
 

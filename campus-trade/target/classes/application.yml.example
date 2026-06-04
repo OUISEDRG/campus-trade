@@ -1,12 +1,18 @@
 
+# ============================================
+# 生产环境部署说明：
+# 请通过环境变量注入数据库密码等敏感信息：
+#   export DB_USERNAME=your_username
+#   export DB_PASSWORD=your_password
+# ============================================
 server:
   port: 8080
 
 spring:
   datasource:
     # ⚠️ 请修改为你的数据库配置
-    username: root
-    password: YOUR_PASSWORD_HERE
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:123456}
     url: jdbc:mysql://localhost:3306/campus_trade?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
     driver-class-name: com.mysql.cj.jdbc.Driver
   servlet:
