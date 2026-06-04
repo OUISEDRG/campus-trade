@@ -297,71 +297,551 @@ const toDetail = (id) => router.push(`/detail/${id}`)
 </script>
 
 <style scoped>
-.page-container { padding-top: 100px; padding-bottom: 80px; }
-.glass-header { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 1100px; height: 65px; background: rgba(255,255,255,0.45); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.3); border-radius: 20px; display: flex; align-items: center; justify-content: space-between; padding: 0 30px; z-index: 100; box-shadow: 0 8px 32px rgba(0,0,0,0.1); }
-.nav-brand { font-size: 20px; font-weight: 900; color: #409eff; cursor: pointer; }
-.glass-search { flex: 1; max-width: 400px; margin: 0 40px; background: rgba(255,255,255,0.2); border-radius: 12px; display: flex; align-items: center; padding: 0 15px; border: 1px solid rgba(255,255,255,0.3); }
-.glass-search input { background: transparent; border: none; outline: none; padding: 10px; flex: 1; color: #333; }
-.nav-links { display: flex; align-items: center; gap: 20px; }
-.nav-links span { cursor: pointer; font-weight: 500; opacity: 0.7; transition: 0.3s; font-size: 14px; }
-.nav-links span:hover { opacity: 1; color: #409eff; }
-.nav-links span.active { color: #409eff; opacity: 1; }
-.user-badge { width: 35px; height: 35px; background: #409eff; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; }
-.section-title { display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto; padding: 0 20px; }
-.goods-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 25px; padding: 20px; max-width: 1200px; margin: 0 auto; }
-.item-card { border-radius: 24px; overflow: hidden; transition: 0.4s; cursor: pointer; background: rgba(255,255,255,0.45); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.3); }
-.item-card:hover { transform: translateY(-10px); box-shadow: 0 20px 40px rgba(0,0,0,0.15); }
-.item-img { position: relative; height: 180px; overflow: hidden; }
-.item-img img { width: 100%; height: 100%; object-fit: cover; transition: 0.6s; }
-.category-tag { position: absolute; top: 10px; left: 10px; padding: 4px 10px; background: rgba(0,0,0,0.5); color: white; font-size: 10px; border-radius: 8px; backdrop-filter: blur(5px); }
-.condition-tag { position: absolute; top: 10px; right: 10px; padding: 4px 10px; font-size: 10px; border-radius: 8px; backdrop-filter: blur(5px); }
-.condition-0 { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
-.condition-1 { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white; }
-.condition-2 { background: linear-gradient(135deg, #fc4a1a 0%, #f7b733 100%); color: white; }
-.condition-3 { background: linear-gradient(135deg, #434343 0%, #000000 100%); color: white; }
-.view-count { font-size: 12px; opacity: 0.5; margin-right: 8px; }
-.item-content { padding: 15px; }
-.item-price { color: #f56c6c; font-size: 20px; font-weight: 900; }
-.item-footer { display: flex; justify-content: space-between; font-size: 12px; opacity: 0.6; align-items: center; }
-.banner-section { max-width: 1200px; margin: 0 auto; padding: 20px; }
-.banner-card { position: relative; border-radius: 20px; overflow: hidden; height: 100%; cursor: pointer; }
-.banner-card img { width: 100%; height: 100%; object-fit: cover; }
-.banner-glass-info { position: absolute; bottom: 0; left: 0; width: 100%; padding: 20px; background: linear-gradient(transparent, rgba(0,0,0,0.7)); color: white; }
-.text-ellipsis { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-/* 发布弹窗样式 */
+/* ==================== 全局基础样式 ==================== */
+.page-container { 
+  padding-top: 100px; 
+  padding-bottom: 80px; 
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea15 0%, #764ba215 50%, #409eff15 100%);
+  position: relative;
+}
+
+.page-container::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.15) 0%, transparent 50%),
+              radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.15) 0%, transparent 50%),
+              radial-gradient(circle at 40% 40%, rgba(120, 219, 255, 0.1) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* ==================== 玻璃拟态导航栏 ==================== */
+.glass-header { 
+  position: fixed; 
+  top: 20px; 
+  left: 50%; 
+  transform: translateX(-50%); 
+  width: 90%; 
+  max-width: 1100px; 
+  height: 68px; 
+  background: rgba(255, 255, 255, 0.55); 
+  backdrop-filter: blur(24px) saturate(180%); 
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.45); 
+  border-radius: 24px; 
+  display: flex; 
+  align-items: center; 
+  justify-content: space-between; 
+  padding: 0 30px; 
+  z-index: 100; 
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.08), 
+              0 2px 10px rgba(0, 0, 0, 0.05),
+              inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-header:hover {
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.12), 
+              0 4px 16px rgba(0, 0, 0, 0.08),
+              inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  transform: translateX(-50%) translateY(-2px);
+}
+
+.nav-brand { 
+  font-size: 22px; 
+  font-weight: 900; 
+  color: #409eff; 
+  cursor: pointer;
+  background: linear-gradient(135deg, #409eff, #66b1ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.5px;
+}
+
+/* ==================== 搜索框玻璃效果 ==================== */
+.glass-search { 
+  flex: 1; 
+  max-width: 420px; 
+  margin: 0 40px; 
+  background: rgba(255, 255, 255, 0.35); 
+  border-radius: 16px; 
+  display: flex; 
+  align-items: center; 
+  padding: 0 16px; 
+  border: 1px solid rgba(255, 255, 255, 0.45); 
+  transition: all 0.3s ease;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.03);
+}
+
+.glass-search:hover {
+  background: rgba(255, 255, 255, 0.45);
+  border-color: rgba(64, 158, 255, 0.3);
+  box-shadow: 0 0 0 3px rgba(64, 158, 255, 0.08), inset 0 2px 6px rgba(0, 0, 0, 0.03);
+}
+
+.glass-search:focus-within {
+  background: rgba(255, 255, 255, 0.55);
+  border-color: rgba(64, 158, 255, 0.5);
+  box-shadow: 0 0 0 4px rgba(64, 158, 255, 0.12), inset 0 2px 6px rgba(0, 0, 0, 0.03);
+}
+
+.glass-search input { 
+  background: transparent; 
+  border: none; 
+  outline: none; 
+  padding: 12px 10px; 
+  flex: 1; 
+  color: #333;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.glass-search input::placeholder {
+  color: rgba(0, 0, 0, 0.35);
+}
+
+/* ==================== 导航链接 ==================== */
+.nav-links { 
+  display: flex; 
+  align-items: center; 
+  gap: 24px; 
+}
+
+.nav-links span { 
+  cursor: pointer; 
+  font-weight: 600; 
+  opacity: 0.7; 
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+  font-size: 14px; 
+  padding: 6px 12px;
+  border-radius: 10px;
+}
+
+.nav-links span:hover { 
+  opacity: 1; 
+  color: #409eff; 
+  background: rgba(64, 158, 255, 0.08);
+  transform: translateY(-1px);
+}
+
+.nav-links span.active { 
+  color: #409eff; 
+  opacity: 1; 
+  background: rgba(64, 158, 255, 0.12);
+  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.1);
+}
+
+.user-badge { 
+  width: 38px; 
+  height: 38px; 
+  background: linear-gradient(135deg, #409eff, #66b1ff); 
+  color: white; 
+  border-radius: 50%; 
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+  font-weight: bold; 
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
+  transition: all 0.3s ease;
+}
+
+.user-badge:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 16px rgba(64, 158, 255, 0.4);
+}
+
+/* ==================== 筛选栏玻璃效果 ==================== */
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 18px 24px;
+  max-width: 1200px;
+  margin: 0 auto 20px;
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 20px;
+  flex-wrap: wrap;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06), 
+              inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  transition: all 0.3s ease;
+}
+
+.filter-bar:hover {
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08), 
+              inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.filter-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: #666;
+  font-weight: 500;
+}
+
+.filter-item span:first-child {
+  color: #409eff;
+  font-weight: 600;
+}
+
+/* ==================== 区域标题 ==================== */
+.section-title { 
+  display: flex; 
+  justify-content: space-between; 
+  align-items: center; 
+  max-width: 1200px; 
+  margin: 0 auto; 
+  padding: 0 20px;
+}
+
+.section-title h2 {
+  font-size: 22px;
+  font-weight: 800;
+  color: #333;
+  letter-spacing: -0.5px;
+  background: linear-gradient(135deg, #333, #666);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ==================== 商品卡片玻璃效果 ==================== */
+.goods-grid { 
+  display: grid; 
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); 
+  gap: 28px; 
+  padding: 24px 20px; 
+  max-width: 1200px; 
+  margin: 0 auto; 
+}
+
+.item-card { 
+  border-radius: 28px; 
+  overflow: hidden; 
+  transition: all 0.45s cubic-bezier(0.4, 0, 0.2, 1); 
+  cursor: pointer; 
+  background: rgba(255, 255, 255, 0.6); 
+  backdrop-filter: blur(16px) saturate(180%); 
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.5); 
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06), 
+              inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  position: relative;
+}
+
+.item-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50%;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.25), transparent);
+  border-radius: 28px 28px 0 0;
+  pointer-events: none;
+}
+
+.item-card:hover { 
+  transform: translateY(-12px) scale(1.02); 
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.12), 
+              0 12px 24px rgba(0, 0, 0, 0.08),
+              inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  border-color: rgba(64, 158, 255, 0.35);
+}
+
+.item-img { 
+  position: relative; 
+  height: 190px; 
+  overflow: hidden; 
+}
+
+.item-img img { 
+  width: 100%; 
+  height: 100%; 
+  object-fit: cover; 
+  transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1); 
+}
+
+.item-card:hover .item-img img {
+  transform: scale(1.08);
+}
+
+.category-tag { 
+  position: absolute; 
+  top: 14px; 
+  left: 14px; 
+  padding: 6px 14px; 
+  background: rgba(0, 0, 0, 0.55); 
+  color: white; 
+  font-size: 11px; 
+  border-radius: 10px; 
+  backdrop-filter: blur(10px); 
+  -webkit-backdrop-filter: blur(10px);
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.condition-tag { 
+  position: absolute; 
+  top: 14px; 
+  right: 14px; 
+  padding: 6px 14px; 
+  font-size: 11px; 
+  border-radius: 10px; 
+  backdrop-filter: blur(10px); 
+  -webkit-backdrop-filter: blur(10px);
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.condition-0 { 
+  background: linear-gradient(135deg, #667eea, #764ba2); 
+  color: white; 
+}
+
+.condition-1 { 
+  background: linear-gradient(135deg, #11998e, #38ef7d); 
+  color: white; 
+}
+
+.condition-2 { 
+  background: linear-gradient(135deg, #fc4a1a, #f7b733); 
+  color: white; 
+}
+
+.condition-3 { 
+  background: linear-gradient(135deg, #434343, #000000); 
+  color: white; 
+}
+
+.view-count { 
+  font-size: 12px; 
+  opacity: 0.6; 
+  margin-right: 8px; 
+  font-weight: 500;
+}
+
+.item-content { 
+  padding: 18px 18px 20px; 
+}
+
+.item-title {
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 8px;
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+.item-price { 
+  color: #f56c6c; 
+  font-size: 22px; 
+  font-weight: 900; 
+  margin: 8px 0;
+  letter-spacing: -0.5px;
+}
+
+.item-footer { 
+  display: flex; 
+  justify-content: space-between; 
+  font-size: 13px; 
+  opacity: 0.7; 
+  align-items: center; 
+}
+
+.item-footer .el-icon {
+  color: #409eff;
+  font-size: 16px;
+}
+
+/* ==================== 轮播图 ==================== */
+.banner-section { 
+  max-width: 1200px; 
+  margin: 0 auto; 
+  padding: 24px 20px; 
+}
+
+.banner-card { 
+  position: relative; 
+  border-radius: 24px; 
+  overflow: hidden; 
+  height: 100%; 
+  cursor: pointer; 
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+}
+
+.banner-card:hover {
+  box-shadow: 0 16px 56px rgba(0, 0, 0, 0.2);
+}
+
+.banner-card img { 
+  width: 100%; 
+  height: 100%; 
+  object-fit: cover; 
+  transition: transform 0.6s ease;
+}
+
+.banner-card:hover img {
+  transform: scale(1.03);
+}
+
+.banner-glass-info { 
+  position: absolute; 
+  bottom: 0; 
+  left: 0; 
+  width: 100%; 
+  padding: 28px 24px; 
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent); 
+  color: white; 
+}
+
+.banner-glass-info h3 {
+  font-size: 20px;
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+
+.text-ellipsis { 
+  white-space: nowrap; 
+  overflow: hidden; 
+  text-overflow: ellipsis; 
+}
+
+/* ==================== 分页 ==================== */
+.pagination-wrapper {
+  display: flex;
+  justify-content: center;
+  padding: 40px 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* ==================== 移动端适配 ==================== */
+@media (max-width: 768px) {
+  .page-container {
+    padding-top: 90px;
+  }
+  
+  .glass-header {
+    width: 95%;
+    height: 60px;
+    top: 12px;
+    padding: 0 16px;
+    border-radius: 20px;
+  }
+  
+  .nav-brand {
+    font-size: 18px;
+  }
+  
+  .glass-search {
+    margin: 0 16px;
+    max-width: 200px;
+  }
+  
+  .nav-links {
+    gap: 12px;
+  }
+  
+  .nav-links span {
+    font-size: 13px;
+    padding: 4px 8px;
+  }
+  
+  .goods-grid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 16px;
+    padding: 16px 12px;
+  }
+  
+  .item-card {
+    border-radius: 20px;
+  }
+  
+  .item-img {
+    height: 150px;
+  }
+  
+  .filter-bar {
+    padding: 14px 16px;
+    gap: 16px;
+    border-radius: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .goods-grid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
+  }
+  
+  .item-img {
+    height: 130px;
+  }
+  
+  .item-title {
+    font-size: 13px;
+  }
+  
+  .item-price {
+    font-size: 18px;
+  }
+}
+
+/* ==================== 发布弹窗样式 ==================== */
 .glass-dialog :deep(.el-dialog) {
-  background: var(--glass-bg, rgba(255, 255, 255, 0.45));
-  backdrop-filter: blur(20px);
-  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.3));
-  border-radius: 24px;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 28px;
+  box-shadow: 0 24px 72px rgba(0, 0, 0, 0.18),
+              inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
 
 .glass-dialog :deep(.el-dialog__header) {
-  padding: 24px 24px 0;
-  border-bottom: 1px solid rgba(255,255,255,0.2);
+  padding: 28px 28px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.25);
   margin: 0;
 }
 
 .glass-dialog :deep(.el-dialog__title) {
-  font-size: 20px;
-  font-weight: bold;
-  color: var(--text-color, #333);
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  background: linear-gradient(135deg, #333, #666);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .glass-dialog :deep(.el-dialog__body) {
-  padding: 24px;
+  padding: 28px;
 }
 
 .publish-form {
   .form-item {
-    margin-bottom: 20px;
+    margin-bottom: 22px;
   }
   
   :deep(.el-form-item__label) {
-    font-weight: 600;
-    color: var(--text-color, #333);
-    margin-bottom: 10px;
+    font-weight: 700;
+    color: #555;
+    margin-bottom: 12px;
     font-size: 14px;
     line-height: 1.5;
     display: block;
@@ -372,43 +852,48 @@ const toDetail = (id) => router.push(`/detail/${id}`)
 .publish-form :deep(.el-input__placeholder),
 .publish-form :deep(.el-textarea__placeholder),
 .publish-form :deep(.el-select__placeholder) {
-  color: rgba(0,0,0,0.3);
+  color: rgba(0, 0, 0, 0.35);
   font-style: normal;
+  font-weight: 500;
 }
 
 /* 上传区域 */
 .upload-section {
   text-align: center;
-  padding: 16px;
-  background: rgba(255,255,255,0.3);
-  backdrop-filter: blur(5px);
-  border-radius: 16px;
-  border: 1px dashed rgba(64,158,255,0.3);
-  transition: all 0.3s;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 20px;
+  border: 2px dashed rgba(64, 158, 255, 0.35);
+  transition: all 0.3s ease;
 }
 
 .upload-section:hover {
-  background: rgba(64,158,255,0.05);
-  border-color: rgba(64,158,255,0.5);
+  background: rgba(64, 158, 255, 0.06);
+  border-color: rgba(64, 158, 255, 0.55);
+  border-style: solid;
 }
 
 /* 自定义输入框 */
 .custom-input :deep(.el-input__wrapper) {
-  background: rgba(255,255,255,0.5);
-  backdrop-filter: blur(5px);
-  border: 1px solid rgba(255,255,255,0.3);
-  border-radius: 12px;
-  box-shadow: none;
-  transition: all 0.3s;
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+  transition: all 0.3s ease;
 }
 
 .custom-input :deep(.el-input__wrapper:hover) {
-  border-color: rgba(255,255,255,0.5);
+  border-color: rgba(255, 255, 255, 0.65);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 .custom-input :deep(.el-input__wrapper.is-focus) {
   border-color: var(--primary-color, #409eff);
-  box-shadow: 0 0 0 2px rgba(64,158,255,0.2);
+  box-shadow: 0 0 0 4px rgba(64, 158, 255, 0.15), 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 /* 自定义下拉框 */
@@ -417,48 +902,53 @@ const toDetail = (id) => router.push(`/detail/${id}`)
 }
 
 .custom-select :deep(.el-select__wrapper) {
-  background: rgba(255,255,255,0.5);
-  backdrop-filter: blur(5px);
-  border: 1px solid rgba(255,255,255,0.3);
-  border-radius: 12px;
-  box-shadow: none;
-  transition: all 0.3s;
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+  transition: all 0.3s ease;
 }
 
 .custom-select :deep(.el-select__wrapper:hover) {
-  border-color: rgba(255,255,255,0.5);
+  border-color: rgba(255, 255, 255, 0.65);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 .custom-select :deep(.el-select__wrapper.is-focused) {
   border-color: var(--primary-color, #409eff);
-  box-shadow: 0 0 0 2px rgba(64,158,255,0.2);
+  box-shadow: 0 0 0 4px rgba(64, 158, 255, 0.15), 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 /* 价格输入 */
 .price-input-wrapper {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  background: rgba(255,255,255,0.5);
-  backdrop-filter: blur(5px);
-  border: 1px solid rgba(255,255,255,0.3);
-  border-radius: 12px;
-  transition: all 0.3s;
+  gap: 14px;
+  padding: 14px 18px;
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+  transition: all 0.3s ease;
 }
 
 .price-input-wrapper:hover {
-  border-color: rgba(255,255,255,0.5);
+  border-color: rgba(255, 255, 255, 0.65);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 .price-input-wrapper:focus-within {
   border-color: var(--primary-color, #409eff);
-  box-shadow: 0 0 0 2px rgba(64,158,255,0.2);
+  box-shadow: 0 0 0 4px rgba(64, 158, 255, 0.15), 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 .price-prefix {
-  font-size: 24px;
-  font-weight: 700;
+  font-size: 26px;
+  font-weight: 800;
   color: #f56c6c;
   line-height: 1;
 }
@@ -475,67 +965,71 @@ const toDetail = (id) => router.push(`/detail/${id}`)
 }
 
 .price-input :deep(.el-input-number__input) {
-  font-size: 18px;
-  font-weight: 600;
+  font-size: 20px;
+  font-weight: 700;
   color: var(--text-color, #333);
 }
 
 .price-input :deep(.el-input-number__decrease),
 .price-input :deep(.el-input-number__increase) {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  background: rgba(0,0,0,0.05);
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.05);
   border: none;
+  transition: all 0.3s ease;
 }
 
 .price-input :deep(.el-input-number__decrease):hover,
 .price-input :deep(.el-input-number__increase):hover {
-  background: rgba(64,158,255,0.1);
+  background: rgba(64, 158, 255, 0.12);
 }
 
 /* 自定义文本域 */
 .custom-textarea :deep(.el-textarea__inner) {
-  background: rgba(255,255,255,0.5);
-  backdrop-filter: blur(5px);
-  border: 1px solid rgba(255,255,255,0.3);
-  border-radius: 12px;
-  box-shadow: none;
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
   resize: none;
-  transition: all 0.3s;
+  transition: all 0.3s ease;
 }
 
 .custom-textarea :deep(.el-textarea__inner:hover) {
-  border-color: rgba(255,255,255,0.5);
+  border-color: rgba(255, 255, 255, 0.65);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 .custom-textarea :deep(.el-textarea__inner:focus) {
   border-color: var(--primary-color, #409eff);
-  box-shadow: 0 0 0 2px rgba(64,158,255,0.2);
+  box-shadow: 0 0 0 4px rgba(64, 158, 255, 0.15), 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 /* 按钮样式 */
 .dialog-footer {
   display: flex;
-  gap: 12px;
+  gap: 14px;
   justify-content: flex-end;
-  padding-top: 16px;
-  border-top: 1px solid rgba(255,255,255,0.2);
-  margin-top: 8px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.25);
+  margin-top: 10px;
 }
 
 .glass-btn {
   border: none;
-  border-radius: 12px;
-  padding: 12px 30px;
+  border-radius: 14px;
+  padding: 14px 32px;
   cursor: pointer;
-  font-weight: 600;
+  font-weight: 700;
   font-size: 15px;
   font-family: 'PingFang SC', sans-serif;
-  transition: all 0.3s ease;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
   outline: none;
   position: relative;
   overflow: hidden;
+  letter-spacing: 0.3px;
 }
 
 .glass-btn::before {
@@ -545,8 +1039,8 @@ const toDetail = (id) => router.push(`/detail/${id}`)
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-  transition: left 0.5s;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.6s ease;
 }
 
 .glass-btn:hover::before {
@@ -556,39 +1050,45 @@ const toDetail = (id) => router.push(`/detail/${id}`)
 .glass-btn.primary {
   background: linear-gradient(135deg, var(--primary-color, #409eff), #66b1ff);
   color: white;
-  box-shadow: 0 4px 15px rgba(64,158,255,0.3), 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 6px 20px rgba(64, 158, 255, 0.35), 0 3px 8px rgba(0, 0, 0, 0.1);
 }
 
 .glass-btn.primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(64,158,255,0.4), 0 4px 8px rgba(0,0,0,0.15);
+  transform: translateY(-3px);
+  box-shadow: 0 10px 28px rgba(64, 158, 255, 0.45), 0 5px 12px rgba(0, 0, 0, 0.15);
 }
 
 .glass-btn.primary:active {
-  transform: translateY(0);
-  box-shadow: 0 2px 8px rgba(64,158,255,0.3);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(64, 158, 255, 0.35);
 }
 
 .glass-btn.secondary {
-  background: rgba(255,255,255,0.4);
-  backdrop-filter: blur(5px);
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   color: var(--text-color, #333);
-  border: 1px solid rgba(255,255,255,0.5);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 .glass-btn.secondary:hover {
-  background: rgba(255,255,255,0.6);
-  border-color: rgba(255,255,255,0.7);
+  background: rgba(255, 255, 255, 0.7);
+  border-color: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
 }
 
 .glass-btn.secondary:active {
-  background: rgba(255,255,255,0.3);
+  background: rgba(255, 255, 255, 0.4);
+  transform: translateY(0);
 }
 
 .glass-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
   transform: none !important;
+  box-shadow: none !important;
 }
 
 .glass-btn:disabled:hover {
@@ -609,7 +1109,7 @@ const toDetail = (id) => router.push(`/detail/${id}`)
 }
 
 .nav-text {
-  font-weight: 500;
+  font-weight: 600;
   font-size: 14px;
   color: var(--text-color, #333);
   opacity: 0.7;
@@ -620,33 +1120,5 @@ const toDetail = (id) => router.push(`/detail/${id}`)
 .message-badge:hover .nav-text {
   opacity: 1;
   color: #409eff;
-}
-
-.pagination-wrapper {
-  display: flex;
-  justify-content: center;
-  padding: 30px 20px;
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
-.filter-bar {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  padding: 15px 20px;
-  max-width: 1200px;
-  margin: 0 auto 10px;
-  background: rgba(255,255,255,0.3);
-  backdrop-filter: blur(10px);
-  border-radius: 16px;
-  flex-wrap: wrap;
-}
-.filter-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  color: #666;
 }
 </style>
