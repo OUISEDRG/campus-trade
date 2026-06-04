@@ -5,11 +5,15 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.example.demo.entity.Bargain;
 import com.example.demo.entity.BargainRecord;
 import com.example.demo.entity.Goods;
+import com.example.demo.entity.User;
 import com.example.demo.exception.CustomException;
 import com.example.demo.mapper.BargainMapper;
 import com.example.demo.mapper.BargainRecordMapper;
 import com.example.demo.mapper.GoodsMapper;
+import com.example.demo.mapper.UserMapper;
 import com.example.demo.service.BargainService;
+import com.example.demo.service.GoodsService;
+import com.example.demo.service.MessageService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +23,7 @@ import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Random;
+import java.util.stream.Collectors;
 
 @Service
 public class BargainServiceImpl extends ServiceImpl<BargainMapper, Bargain> implements BargainService {
@@ -32,11 +37,20 @@ public class BargainServiceImpl extends ServiceImpl<BargainMapper, Bargain> impl
     @Autowired
     private GoodsMapper goodsMapper;
     
+    @Autowired
+    private UserMapper userMapper;
+    
+    @Autowired
+    private GoodsService goodsService;
+    
+    @Autowired
+    private MessageService messageService;
+    
     private final Random random = new Random();
 
     @Override
     @Transactional
-    public Bargain createBargain(Long goodsId, Long userId, BigDecimal targetPrice, Integer maxParticipants) {
+    public Bargain createBargain(Long goodsId, Long userId, BigDecimal targetPrice) {
         Goods goods = goodsMapper.selectById(goodsId);
         if (goods == null) {
             throw new CustomException("商品不存在");
@@ -53,8 +67,6 @@ public class BargainServiceImpl extends ServiceImpl<BargainMapper, Bargain> impl
         bargain.setCurrentPrice(goods.getPrice());
         bargain.setTargetPrice(targetPrice);
         bargain.setStatus(0);
-        bargain.setMaxParticipants(maxParticipants);
-        bargain.setCurrentParticipants(0);
         bargain.setStartTime(LocalDateTime.now());
         bargain.setEndTime(LocalDateTime.now().plusDays(1));
         bargain.setCreateTime(LocalDateTime.now());
@@ -149,5 +161,78 @@ public class BargainServiceImpl extends ServiceImpl<BargainMapper, Bargain> impl
         bargain.setStatus(2);
         bargain.setIsDeleted(1);
         return bargainMapper.updateById(bargain) > 0;
+    }
+
+    @Override
+    @Transactional
+    public Bargain approveBargain(Long bargainId) {
+        Bargain bargain = bargainMapper.selectById(bargainId);
+        if (bargain == null || bargain.getIsDeleted() == 1) {
+            throw new CustomException("砍价活动不存在");
+        }
+        
+        // 更新商品价格为砍价目标价
+        Goods goods = goodsMapper.selectById(bargain.getGoodsId());
+        if (goods != null) {
+            goods.setPrice(bargain.getTargetPrice());
+            goodsMapper.updateById(goods);
+        }
+        
+        bargain.setStatus(1);
+        bargainMapper.updateById(bargain);
+        
+        // 发送通知
+        User user = userMapper.selectById(bargain.getUserId());
+        String username = (user != null) ? user.getName() : "用户";
+        messageService.sendMessageDirect(
+            bargain.getUserId(),
+            "砍价通过",
+            "您在商品「" + (goods != null ? goods.getTitle() : "") + "」的砍价请求已被通过，商品价格已更新为 ¥" + bargain.getTargetPrice()
+        );
+        
+        return bargain;
+    }
+
+    @Override
+    @Transactional
+    public Bargain rejectBargain(Long bargainId) {
+        Bargain bargain = bargainMapper.selectById(bargainId);
+        if (bargain == null || bargain.getIsDeleted() == 1) {
+            throw new CustomException("砍价活动不存在");
+        }
+        
+        bargain.setStatus(2);
+        bargainMapper.updateById(bargain);
+        
+        // 发送通知
+        Goods goods = goodsMapper.selectById(bargain.getGoodsId());
+        messageService.sendMessageDirect(
+            bargain.getUserId(),
+            "砍价被拒绝",
+            "您在商品「" + (goods != null ? goods.getTitle() : "") + "」的砍价请求已被拒绝"
+        );
+        
+        return bargain;
+    }
+
+    @Override
+    public List<Bargain> getPendingBargainsBySellerId(Long sellerId) {
+        // 先查询该商家所有商品
+        QueryWrapper<Goods> goodsQuery = new QueryWrapper<>();
+        goodsQuery.eq("user_id", sellerId).eq("is_deleted", 0);
+        List<Goods> goodsList = goodsMapper.selectList(goodsQuery);
+        
+        if (goodsList.isEmpty()) {
+            return List.of();
+        }
+        
+        List<Integer> goodsIds = goodsList.stream()
+                .map(Goods::getId)
+                .collect(Collectors.toList());
+        
+        // 再查询这些商品下的待处理砍价
+        QueryWrapper<Bargain> bargainQuery = new QueryWrapper<>();
+        bargainQuery.in("goods_id", goodsIds).eq("status", 0).eq("is_deleted", 0);
+        return bargainMapper.selectList(bargainQuery);
     }
 }

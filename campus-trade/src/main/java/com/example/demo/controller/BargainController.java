@@ -23,9 +23,8 @@ public class BargainController {
         Long goodsId = ((Number) params.get("goodsId")).longValue();
         Long userId = ((Number) params.get("userId")).longValue();
         BigDecimal targetPrice = new BigDecimal(params.get("targetPrice").toString());
-        Integer maxParticipants = (Integer) params.get("maxParticipants");
         
-        Bargain bargain = bargainService.createBargain(goodsId, userId, targetPrice, maxParticipants);
+        Bargain bargain = bargainService.createBargain(goodsId, userId, targetPrice);
         return Result.success("创建成功", bargain);
     }
 
@@ -63,5 +62,23 @@ public class BargainController {
     public Result<String> cancelBargain(@PathVariable Long id) {
         boolean success = bargainService.cancelBargain(id);
         return success ? Result.success("已取消") : Result.error("取消失败");
+    }
+
+    @PostMapping("/{id}/approve")
+    public Result<String> approveBargain(@PathVariable Long id) {
+        bargainService.approveBargain(id);
+        return Result.success("已通过");
+    }
+
+    @PostMapping("/{id}/reject")
+    public Result<String> rejectBargain(@PathVariable Long id) {
+        bargainService.rejectBargain(id);
+        return Result.success("已拒绝");
+    }
+
+    @GetMapping("/pending/{sellerId}")
+    public Result<List<Bargain>> getPendingBargainsBySellerId(@PathVariable Long sellerId) {
+        List<Bargain> bargains = bargainService.getPendingBargainsBySellerId(sellerId);
+        return Result.success(bargains);
     }
 }

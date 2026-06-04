@@ -81,11 +81,14 @@
       <!-- 发起交换弹窗 -->
       <el-dialog v-model="showCreate" title="发起物品交换" width="90%" max-width="450px" class="glass-dialog">
         <el-form label-position="top">
+          <el-form-item label="选择我的商品（用哪个商品来交换）">
+            <el-select v-model="createForm.initiatorGoodsId" placeholder="请选择你的商品" class="w-full" filterable>
+              <el-option v-for="g in myGoodsList" :key="g.id" :label="`${g.title} (￥${g.price})`" :value="g.id" />
+            </el-select>
+            <span class="form-hint" v-if="myGoodsList.length === 0">你还没有在售商品，请先发布商品</span>
+          </el-form-item>
           <el-form-item label="目标用户ID（对方的ID）">
             <el-input-number v-model="createForm.targetUserId" :min="1" class="w-full" />
-          </el-form-item>
-          <el-form-item label="我的商品ID">
-            <el-input-number v-model="createForm.initiatorGoodsId" :min="1" class="w-full" />
           </el-form-item>
           <el-form-item label="目标商品ID（对方的商品）">
             <el-input-number v-model="createForm.targetGoodsId" :min="1" class="w-full" />
@@ -104,7 +107,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
+import request from '../utils/request'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '../stores/user'
@@ -120,6 +124,7 @@ const pendingExchanges = ref([])
 const pendingCount = ref(0)
 const showCreate = ref(false)
 const createForm = ref({ targetUserId: 1, initiatorGoodsId: 1, targetGoodsId: 1, message: '' })
+const myGoodsList = ref([])
 
 onMounted(() => {
   if (!userStore.isLoggedIn) { router.push('/'); return }
@@ -143,6 +148,19 @@ const loadPendingExchanges = async () => {
     }
   } catch (e) { /* handled */ }
 }
+
+const loadMyGoods = async () => {
+  try {
+    const res = await request.get('/goods/list', { params: { userId: user.value.id, page: 1, pageSize: 100 } })
+    if (res.data.code === 200) {
+      myGoodsList.value = (res.data.data?.records || []).filter(g => g.status === 0)
+    }
+  } catch (e) { /* handled */ }
+}
+
+watch(showCreate, (val) => {
+  if (val) loadMyGoods()
+})
 
 const submitCreate = async () => {
   if (!createForm.value.targetUserId || !createForm.value.initiatorGoodsId || !createForm.value.targetGoodsId) {

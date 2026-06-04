@@ -6,14 +6,21 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.demo.common.Result;
 import com.example.demo.dto.UserDetailsDTO;
 import com.example.demo.dto.UserStatusDTO;
+import com.example.demo.entity.Bargain;
+import com.example.demo.entity.Goods;
 import com.example.demo.entity.Orders;
 import com.example.demo.entity.User;
+import com.example.demo.mapper.GoodsMapper;
+import com.example.demo.mapper.UserMapper;
 import com.example.demo.service.AdminService;
+import com.example.demo.service.BargainService;
 import com.example.demo.service.OrdersService;
 import com.example.demo.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -27,6 +34,12 @@ public class AdminController {
     private OrdersService ordersService;
     @Autowired
     private AdminService adminService;
+    @Autowired
+    private BargainService bargainService;
+    @Autowired
+    private GoodsMapper goodsMapper;
+    @Autowired
+    private UserMapper userMapper;
 
     @GetMapping("/users")
     public Result<IPage<User>> getUserPage(
@@ -121,5 +134,41 @@ public class AdminController {
     public Result<List<Map<String, Object>>> getRecentOrders() {
         List<Map<String, Object>> orders = adminService.getRecentOrders();
         return Result.success(orders);
+    }
+
+    @GetMapping("/bargains/pending")
+    public Result<List<Map<String, Object>>> getPendingBargains() {
+        List<Map<String, Object>> result = new ArrayList<>();
+        
+        // Get all goods that are in active bargain status
+        QueryWrapper<Bargain> qw = new QueryWrapper<>();
+        qw.eq("status", 0).eq("is_deleted", 0).orderByDesc("create_time");
+        List<Bargain> bargains = bargainService.list(qw);
+        
+        for (Bargain b : bargains) {
+            Map<String, Object> map = new HashMap<>();
+            map.put("id", b.getId());
+            map.put("goodsId", b.getGoodsId());
+            map.put("userId", b.getUserId());
+            map.put("originalPrice", b.getOriginalPrice());
+            map.put("targetPrice", b.getTargetPrice());
+            map.put("createTime", b.getCreateTime());
+            
+            // Get goods title
+            Goods goods = goodsMapper.selectById(b.getGoodsId());
+            if (goods != null) {
+                map.put("goodsTitle", goods.getTitle());
+            }
+            
+            // Get buyer name
+            User buyer = userMapper.selectById(b.getUserId());
+            if (buyer != null) {
+                map.put("buyerName", buyer.getUsername());
+            }
+            
+            result.add(map);
+        }
+        
+        return Result.success(result);
     }
 }

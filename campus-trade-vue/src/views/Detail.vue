@@ -116,10 +116,7 @@
             <span class="price-prefix">￥</span>
             <el-input-number v-model="bargainForm.targetPrice" :min="0.01" :max="goods.price" :precision="2" class="flex-1" />
           </div>
-          <span class="form-hint">原价 ￥{{ goods.price }}，最高可砍至 ￥{{ goods.price }}</span>
-        </el-form-item>
-        <el-form-item label="最多参与人数">
-          <el-input-number v-model="bargainForm.maxParticipants" :min="2" :max="50" class="w-full" />
+          <span class="form-hint">原价 ￥{{ goods.price }}，砍价后需卖家确认同意</span>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -220,7 +217,7 @@ const isFavorited = ref(false)
 
 // 砍价相关
 const showBargainDialog = ref(false)
-const bargainForm = reactive({ targetPrice: null, maxParticipants: 5 })
+const bargainForm = reactive({ targetPrice: null })
 const goodsBargains = ref([])
 
 // 换新相关
@@ -390,14 +387,12 @@ const submitBargain = async () => {
     const res = await createBargain({
       goodsId: Number(route.params.id),
       userId: currentUserId,
-      targetPrice: bargainForm.targetPrice,
-      maxParticipants: bargainForm.maxParticipants
+      targetPrice: bargainForm.targetPrice
     })
     if (res.data.code === 200) {
-      ElMessage.success('砍价活动已发起！快邀请好友来帮你砍价吧')
+      ElMessage.success('砍价请求已发送！请等待卖家确认')
       showBargainDialog.value = false
       bargainForm.targetPrice = null
-      bargainForm.maxParticipants = 5
       loadGoodsBargains()
     }
   } catch (e) { /* handled by interceptor */ }

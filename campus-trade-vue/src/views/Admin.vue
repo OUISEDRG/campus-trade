@@ -12,6 +12,9 @@
         <li :class="{ active: activeTab === 'dashboard' }" @click="activeTab = 'dashboard'; initEnhancedDashboard()">
           <el-icon><TrendCharts /></el-icon> 数据面板
         </li>
+        <li :class="{ active: activeTab === 'bargain' }" @click="activeTab = 'bargain'; loadPendingBargains()">
+          <el-icon><ChatLineSquare /></el-icon> 砍价管理
+        </li>
         <li class="logout text-danger" @click="handleLogout">
           <el-icon><SwitchButton /></el-icon> 退出系统
         </li>
@@ -168,6 +171,35 @@
           </div>
         </div>
       </div>
+      <!-- 砍价管理 -->
+      <div v-if="activeTab === 'bargain'" class="glass-card panel fade-in">
+        <h3>砍价管理</h3>
+        <p class="tab-desc">买家发起的砍价请求，同意后商品价格将自动更新为砍价目标价</p>
+
+        <div v-if="pendingBargains.length === 0" class="empty-bargain">
+          <el-empty description="暂无待处理的砍价请求" />
+        </div>
+
+        <div v-for="bargain in pendingBargains" :key="bargain.id" class="bargain-card glass-card">
+          <div class="bargain-header">
+            <span class="bargain-id">砍价 #{{ bargain.id }}</span>
+            <el-tag type="warning" size="small">待处理</el-tag>
+          </div>
+          <div class="bargain-body">
+            <div class="bargain-info">
+              <div class="info-row"><span class="label">发起人：</span><span>{{ bargain.buyerName || '用户#' + bargain.userId }}</span></div>
+              <div class="info-row"><span class="label">商品：</span><span>{{ bargain.goodsTitle || '商品#' + bargain.goodsId }}</span></div>
+              <div class="info-row"><span class="label">原价：</span><span class="old-price">￥{{ bargain.originalPrice }}</span></div>
+              <div class="info-row"><span class="label">目标价：</span><span class="target-price">￥{{ bargain.targetPrice }}</span></div>
+              <div class="info-row"><span class="label">时间：</span><span>{{ bargain.createTime }}</span></div>
+            </div>
+            <div class="bargain-actions">
+              <button class="glass-btn success small" @click="approveBargain(bargain.id)">同意</button>
+              <button class="glass-btn danger small" @click="rejectBargain(bargain.id)">拒绝</button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <el-dialog v-model="showDetailDialog" title="用户全景详情" width="90%" max-width="500px" class="glass-dialog">
@@ -224,7 +256,7 @@
 <script setup>
 import { ref, onMounted, nextTick, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { User, DataLine, SwitchButton, Search, TrendCharts } from '@element-plus/icons-vue'
+import { User, DataLine, SwitchButton, Search, TrendCharts, ChatLineSquare } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import request from '../utils/request'
 import * as echarts from 'echarts'
@@ -251,6 +283,38 @@ const selectedUser = ref(null)
 const dashboardStats = ref({})
 const topSellers = ref([])
 const recentOrders = ref([])
+
+// 砍价管理
+const pendingBargains = ref([])
+
+const loadPendingBargains = async () => {
+  try {
+    const res = await request.get('/admin/bargains/pending')
+    if (res.data.code === 200) {
+      pendingBargains.value = res.data.data || []
+    }
+  } catch (e) { /* skip */ }
+}
+
+const approveBargain = async (id) => {
+  try {
+    const res = await request.post(`/bargain/${id}/approve`)
+    if (res.data.code === 200) {
+      ElMessage.success('已同意砍价，商品价格已更新！')
+      loadPendingBargains()
+    }
+  } catch (e) { /* skip */ }
+}
+
+const rejectBargain = async (id) => {
+  try {
+    const res = await request.post(`/bargain/${id}/reject`)
+    if (res.data.code === 200) {
+      ElMessage.success('已拒绝该砍价请求')
+      loadPendingBargains()
+    }
+  } catch (e) { /* skip */ }
+}
 
 onMounted(() => {
   if (!adminStore.isAdminLoggedIn) {
@@ -666,4 +730,24 @@ const handleLogout = () => {
 .chart-box { background: rgba(255,255,255,0.5); border-radius: 16px; padding: 20px; border: 1px solid rgba(255,255,255,0.3); }
 .chart-box h4 { margin: 0 0 12px; font-size: 15px; color: #333; }
 @media (max-width: 768px) { .charts-row { grid-template-columns: 1fr; } .stats-cards { grid-template-columns: repeat(2, 1fr); } }
+
+/* 砍价管理 */
+.tab-desc { color: #999; font-size: 13px; margin-top: -10px; margin-bottom: 20px; }
+.bargain-card { padding: 20px; border-radius: 16px; margin-bottom: 16px; border: 1px solid #e6a23c; }
+.bargain-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.bargain-id { font-weight: 700; font-size: 15px; }
+.bargain-body { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; }
+.bargain-info { flex: 1; }
+.info-row { display: flex; margin-bottom: 6px; font-size: 14px; }
+.info-row .label { color: #999; width: 60px; flex-shrink: 0; }
+.old-price { text-decoration: line-through; color: #999; }
+.target-price { color: #f56c6c; font-weight: 700; font-size: 18px; }
+.bargain-actions { display: flex; flex-direction: column; gap: 8px; min-width: 100px; }
+.glass-btn.success { background: #67c23a; color: white; }
+.glass-btn.success:hover { background: #85ce61; }
+.glass-btn.danger { background: #f56c6c; color: white; }
+.glass-btn.danger:hover { background: #f78989; }
+.glass-btn.small { padding: 8px 16px; font-size: 13px; border-radius: 10px; border: none; cursor: pointer; font-weight: 600; transition: 0.3s; }
+.glass-btn.small:hover { transform: translateY(-1px); }
+.empty-bargain { padding: 40px 0; }
 </style>
