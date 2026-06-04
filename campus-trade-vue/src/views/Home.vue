@@ -10,12 +10,15 @@
       <nav class="nav-links">
         <span @click="router.push('/home')" class="active">首页</span>
         <span @click="router.push('/category')">分类</span>
-        <span @click="router.push('/me')">我的</span>
+        <span @click="router.push('/exchange')">以旧换新</span>
+        <span @click="router.push('/bargain')">砍价</span>
+        <span @click="router.push('/notifications')">通知</span>
         <div class="message-badge" @click="router.push('/messages')">
           <el-badge :value="Math.max(0, chatStore?.unreadTotal || 0)" :hidden="!chatStore?.unreadTotal || chatStore.unreadTotal <= 0" class="msg-badge-wrapper">
             <span class="nav-text">消息</span>
           </el-badge>
         </div>
+        <span @click="router.push('/me')">我的</span>
         <div class="user-badge" @click="router.push('/me')">{{ user.username?.[0]?.toUpperCase() }}</div>
       </nav>
     </header>

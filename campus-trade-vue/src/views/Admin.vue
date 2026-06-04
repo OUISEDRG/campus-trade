@@ -6,8 +6,11 @@
         <li :class="{ active: activeTab === 'users' }" @click="activeTab = 'users'">
           <el-icon><User /></el-icon> 用户管理
         </li>
-        <li :class="{ active: activeTab === 'stats' }" @click="activeTab = 'stats'">
+        <li :class="{ active: activeTab === 'stats' }" @click="activeTab = 'stats'; initDashboard()">
           <el-icon><DataLine /></el-icon> 数据统计
+        </li>
+        <li :class="{ active: activeTab === 'dashboard' }" @click="activeTab = 'dashboard'; initEnhancedDashboard()">
+          <el-icon><TrendCharts /></el-icon> 数据面板
         </li>
         <li class="logout text-danger" @click="handleLogout">
           <el-icon><SwitchButton /></el-icon> 退出系统
@@ -78,6 +81,93 @@
         <h3>近7日全站交易走势</h3>
         <div id="tradeChart" style="width: 100%; height: 400px;"></div>
       </div>
+
+      <!-- 增强数据面板 -->
+      <div v-if="activeTab === 'dashboard'" class="glass-card panel fade-in">
+        <h3>数据概览面板</h3>
+
+        <!-- 统计卡片 -->
+        <div class="stats-cards">
+          <div class="stat-card">
+            <div class="stat-icon" style="background:#e6f7ff">📦</div>
+            <div class="stat-info">
+              <span class="stat-value">{{ dashboardStats.totalGoods || 0 }}</span>
+              <span class="stat-label">商品总数</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon" style="background:#f6ffed">👥</div>
+            <div class="stat-info">
+              <span class="stat-value">{{ dashboardStats.totalUsers || 0 }}</span>
+              <span class="stat-label">用户总数</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon" style="background:#fff7e6">🛒</div>
+            <div class="stat-info">
+              <span class="stat-value">{{ dashboardStats.totalOrders || 0 }}</span>
+              <span class="stat-label">总订单数</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon" style="background:#fff0f6">💰</div>
+            <div class="stat-info">
+              <span class="stat-value">￥{{ dashboardStats.totalRevenue || 0 }}</span>
+              <span class="stat-label">总交易额</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon" style="background:#f0f5ff">👤</div>
+            <div class="stat-info">
+              <span class="stat-value">{{ dashboardStats.todayUsers || 0 }}</span>
+              <span class="stat-label">今日新增用户</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon" style="background:#f9f0ff">📋</div>
+            <div class="stat-info">
+              <span class="stat-value">{{ dashboardStats.todayOrders || 0 }}</span>
+              <span class="stat-label">今日订单</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="charts-row">
+          <div class="chart-box">
+            <h4>近7日趋势</h4>
+            <div id="weeklyChart" style="width:100%;height:300px;"></div>
+          </div>
+          <div class="chart-box">
+            <h4>商品分类占比</h4>
+            <div id="categoryChart" style="width:100%;height:300px;"></div>
+          </div>
+        </div>
+
+        <div class="charts-row">
+          <div class="chart-box">
+            <h4>TOP 卖家排行</h4>
+            <el-table :data="topSellers" style="width:100%" class="glass-table" max-height="280">
+              <el-table-column prop="username" label="卖家" />
+              <el-table-column prop="goodsCount" label="商品数" width="80" />
+              <el-table-column prop="orderCount" label="成交单" width="80" />
+              <el-table-column prop="totalRevenue" label="交易额" width="100">
+                <template #default="scope">￥{{ scope.row.totalRevenue || 0 }}</template>
+              </el-table-column>
+            </el-table>
+          </div>
+          <div class="chart-box">
+            <h4>最近订单</h4>
+            <el-table :data="recentOrders" style="width:100%" class="glass-table" max-height="280">
+              <el-table-column prop="id" label="订单号" width="80" />
+              <el-table-column prop="goodsTitle" label="商品" />
+              <el-table-column prop="buyerName" label="买家" width="80" />
+              <el-table-column prop="price" label="金额" width="80">
+                <template #default="scope">￥{{ scope.row.price }}</template>
+              </el-table-column>
+            </el-table>
+          </div>
+        </div>
+      </div>
     </div>
 
     <el-dialog v-model="showDetailDialog" title="用户全景详情" width="90%" max-width="500px" class="glass-dialog">
@@ -134,11 +224,12 @@
 <script setup>
 import { ref, onMounted, nextTick, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { User, DataLine, SwitchButton, Search } from '@element-plus/icons-vue'
+import { User, DataLine, SwitchButton, Search, TrendCharts } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import request from '../utils/request'
 import * as echarts from 'echarts'
 import { useAdminStore } from '../stores/admin'
+import { getDashboardStats, getWeeklyStats, getCategoryStats, getTopSellers, getRecentOrders } from '../api/dashboard'
 
 const router = useRouter()
 const adminStore = useAdminStore()
@@ -156,6 +247,11 @@ const loading = ref(false)
 const showDetailDialog = ref(false)
 const selectedUser = ref(null)
 
+// 增强仪表盘数据
+const dashboardStats = ref({})
+const topSellers = ref([])
+const recentOrders = ref([])
+
 onMounted(() => {
   if (!adminStore.isAdminLoggedIn) {
     ElMessage.error('请先登录管理员账号')
@@ -169,6 +265,10 @@ watch(activeTab, async (newVal) => {
   if (newVal === 'stats') {
     await nextTick()
     initChart()
+  }
+  if (newVal === 'dashboard') {
+    await nextTick()
+    initEnhancedDashboard()
   }
 })
 
@@ -275,6 +375,71 @@ const initChart = async () => {
     ]
   }
   myChart.setOption(option)
+}
+
+// 增强数据面板初始化
+const initEnhancedDashboard = async () => {
+  // 加载概览数据
+  try {
+    const statsRes = await getDashboardStats()
+    if (statsRes.data.code === 200) dashboardStats.value = statsRes.data.data || {}
+  } catch (e) { /* skip */ }
+
+  // 加载TOP卖家
+  try {
+    const sellerRes = await getTopSellers()
+    if (sellerRes.data.code === 200) topSellers.value = sellerRes.data.data || []
+  } catch (e) { /* skip */ }
+
+  // 加载最近订单
+  try {
+    const orderRes = await getRecentOrders()
+    if (orderRes.data.code === 200) recentOrders.value = orderRes.data.data || []
+  } catch (e) { /* skip */ }
+
+  await nextTick()
+  initWeeklyChart()
+  initCategoryChart()
+}
+
+// 周趋势图
+const initWeeklyChart = async () => {
+  const dom = document.getElementById('weeklyChart')
+  if (!dom) return
+  const chart = echarts.init(dom)
+  try {
+    const res = await getWeeklyStats()
+    const data = res.data.data || []
+    chart.setOption({
+      tooltip: { trigger: 'axis' },
+      xAxis: { type: 'category', data: data.map(d => d.date || d.week) },
+      yAxis: { type: 'value' },
+      series: [{
+        name: '成交额', type: 'line', smooth: true, data: data.map(d => d.totalAmount || d.amount || 0),
+        areaStyle: { color: 'rgba(64,158,255,0.15)' }, lineStyle: { color: '#409eff', width: 3 }
+      }]
+    })
+  } catch (e) { chart.setOption({ title: { text: '暂无数据', left: 'center', top: 'center' } }) }
+}
+
+// 分类占比图
+const initCategoryChart = async () => {
+  const dom = document.getElementById('categoryChart')
+  if (!dom) return
+  const chart = echarts.init(dom)
+  try {
+    const res = await getCategoryStats()
+    const data = res.data.data || []
+    chart.setOption({
+      tooltip: { trigger: 'item' },
+      legend: { bottom: 0 },
+      series: [{
+        type: 'pie', radius: ['45%', '70%'], center: ['50%', '45%'],
+        data: data.map(d => ({ name: d.categoryName || d.category || '其他', value: d.count || d.goodsCount || 0 })),
+        emphasis: { itemStyle: { shadowBlur: 10, shadowOffsetX: 0, shadowColor: 'rgba(0,0,0,0.2)' } }
+      }]
+    })
+  } catch (e) { chart.setOption({ title: { text: '暂无数据', left: 'center', top: 'center' } }) }
 }
 
 const handleLogout = () => {
@@ -489,4 +654,16 @@ const handleLogout = () => {
   transform: none;
   box-shadow: none;
 }
+
+/* 增强仪表盘样式 */
+.stats-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.stat-card { display: flex; align-items: center; gap: 14px; padding: 18px; background: rgba(255,255,255,0.6); border-radius: 16px; border: 1px solid rgba(255,255,255,0.4); }
+.stat-icon { width: 48px; height: 48px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 22px; }
+.stat-info { display: flex; flex-direction: column; }
+.stat-value { font-size: 22px; font-weight: 900; color: #333; }
+.stat-label { font-size: 12px; color: #999; margin-top: 2px; }
+.charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+.chart-box { background: rgba(255,255,255,0.5); border-radius: 16px; padding: 20px; border: 1px solid rgba(255,255,255,0.3); }
+.chart-box h4 { margin: 0 0 12px; font-size: 15px; color: #333; }
+@media (max-width: 768px) { .charts-row { grid-template-columns: 1fr; } .stats-cards { grid-template-columns: repeat(2, 1fr); } }
 </style>

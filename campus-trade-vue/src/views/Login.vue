@@ -16,6 +16,12 @@
           <input type="password" v-model="form.password" placeholder="密码" />
         </div>
         <button class="glass-btn primary" @click="handleLogin">进入探索</button>
+        <div class="login-divider">
+          <span>或</span>
+        </div>
+        <button class="glass-btn wechat" @click="showWeChatQR = true">
+          <span class="wechat-icon">💬</span> 微信扫码登录
+        </button>
         <p class="switch-text">没有账号？<span @click="isRegister = true">立即加入</span></p>
       </div>
     </div>
@@ -75,23 +81,50 @@
         </div>
       </template>
     </el-dialog>
+
+    <!-- 微信扫码登录弹窗 -->
+    <el-dialog v-model="showWeChatQR" title="微信扫码登录" width="90%" max-width="360px" class="glass-dialog">
+      <div class="wechat-qr-box">
+        <div v-if="qrLoading" class="qr-loading">
+          <el-icon class="is-loading"><Loading /></el-icon>
+          <p>正在生成二维码...</p>
+        </div>
+        <div v-else class="qr-container">
+          <p class="qr-tip">请使用微信扫描下方二维码</p>
+          <div class="qr-placeholder">
+            <span class="qr-icon">📱</span>
+            <p>{{ qrInfo }}</p>
+          </div>
+        </div>
+      </div>
+      <template #footer>
+        <button class="glass-btn secondary" @click="showWeChatQR = false">关闭</button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { reactive, ref, onMounted } from 'vue'
+import { reactive, ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { Loading } from '@element-plus/icons-vue'
 import request from '../utils/request'
 import { useUserStore } from '../stores/user'
 import { useAdminStore } from '../stores/admin'
 import { useThreeBg } from '../hooks/useThreeBg'
+import { getQRCodeUrl } from '../api/wechat'
 
 const router = useRouter()
 const userStore = useUserStore()
 const adminStore = useAdminStore()
 const isRegister = ref(false)
 const form = reactive({ username: '', password: '' })
+
+// 微信登录
+const showWeChatQR = ref(false)
+const qrLoading = ref(false)
+const qrInfo = ref('')
 
 const regFormRef = ref(null)
 const regForm = reactive({
@@ -188,6 +221,29 @@ const handleRegister = async () => {
     }
   })
 }
+
+// 微信扫码登录
+const loadWeChatQR = async () => {
+  qrLoading.value = true
+  try {
+    const res = await getQRCodeUrl(window.location.origin + '/wechat/callback')
+    if (res.data.code === 200) {
+      const url = res.data.data?.url || ''
+      qrInfo.value = url
+        ? '二维码已生成 (实际部署后会显示微信扫码图片)'
+        : '请在 application.yml 中配置微信AppID和AppSecret'
+    }
+  } catch (e) {
+    qrInfo.value = '二维码生成失败，请检查微信配置'
+  } finally {
+    qrLoading.value = false
+  }
+}
+
+// 监听微信弹窗打开
+watch(showWeChatQR, (val) => {
+  if (val) loadWeChatQR()
+})
 </script>
 
 <style scoped>
@@ -300,6 +356,30 @@ const handleRegister = async () => {
 
 .switch-text { font-size: 13px; margin-top: 25px; opacity: 0.7; }
 .switch-text span { color: var(--primary-color, #409eff); cursor: pointer; font-weight: bold; }
+
+/* 微信登录样式 */
+.login-divider { display: flex; align-items: center; margin: 14px 0; }
+.login-divider::before, .login-divider::after { content: ''; flex: 1; height: 1px; background: rgba(64,158,255,0.2); }
+.login-divider span { padding: 0 12px; font-size: 12px; color: #bbb; }
+
+.glass-btn.wechat { 
+  background: #07c160; color: white; 
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  box-shadow: 0 5px 15px rgba(7,193,96,0.3);
+}
+.glass-btn.wechat:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(7,193,96,0.5); }
+.wechat-icon { font-size: 18px; }
+
+.wechat-qr-box { text-align: center; padding: 20px 0; }
+.qr-loading { display: flex; flex-direction: column; align-items: center; gap: 10px; color: #999; }
+.qr-tip { font-size: 14px; color: #666; margin-bottom: 16px; }
+.qr-placeholder { 
+  width: 200px; height: 200px; margin: 0 auto;
+  background: rgba(7,193,96,0.05); border: 2px dashed rgba(7,193,96,0.2);
+  border-radius: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+.qr-icon { font-size: 48px; margin-bottom: 10px; }
+.qr-placeholder p { font-size: 12px; color: #999; padding: 0 10px; line-height: 1.5; }
 
 /* 注册弹窗玻璃拟物化统一样式 */
 .glass-dialog :deep(.el-dialog) {
