@@ -22,6 +22,8 @@ public interface MessageService {
     
     MessageRecord sendMessageDirect(Long userId, String title, String content);
     
+    MessageRecord sendMessageDirect(Long userId, String title, String content, String pushType);
+    
     List<MessageRecord> getMessagesByUserId(Long userId);
     
     List<MessageRecord> getUnreadMessages(Long userId);

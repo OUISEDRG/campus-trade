@@ -4,8 +4,6 @@
       <div class="nav-brand" @click="router.push('/home')">CampusTrade</div>
       <nav class="nav-links">
         <span @click="router.push('/home')">首页</span>
-        <span @click="router.push('/exchange')">以旧换新</span>
-        <span @click="router.push('/bargain')">砍价专区</span>
         <span @click="router.push('/notifications')" class="active">通知</span>
         <span @click="router.push('/me')">我的</span>
       </nav>

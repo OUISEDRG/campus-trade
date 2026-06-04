@@ -73,6 +73,17 @@ public class BargainServiceImpl extends ServiceImpl<BargainMapper, Bargain> impl
         bargain.setIsDeleted(0);
         
         bargainMapper.insert(bargain);
+        
+        // 向商家发送砍价通知
+        User user = userMapper.selectById(userId);
+        String username = (user != null) ? user.getName() : "用户";
+        messageService.sendMessageDirect(
+            goods.getUserId(),
+            "收到砍价请求",
+            "用户「" + username + "」在商品「" + goods.getTitle() + "」发起了砍价，目标价格为 ¥" + targetPrice + "（原价 ¥" + goods.getPrice() + "）",
+            "bargain"
+        );
+        
         return bargain;
     }
 
@@ -187,7 +198,8 @@ public class BargainServiceImpl extends ServiceImpl<BargainMapper, Bargain> impl
         messageService.sendMessageDirect(
             bargain.getUserId(),
             "砍价通过",
-            "您在商品「" + (goods != null ? goods.getTitle() : "") + "」的砍价请求已被通过，商品价格已更新为 ¥" + bargain.getTargetPrice()
+            "您在商品「" + (goods != null ? goods.getTitle() : "") + "」的砍价请求已被通过，商品价格已更新为 ¥" + bargain.getTargetPrice(),
+            "bargain"
         );
         
         return bargain;
@@ -209,7 +221,8 @@ public class BargainServiceImpl extends ServiceImpl<BargainMapper, Bargain> impl
         messageService.sendMessageDirect(
             bargain.getUserId(),
             "砍价被拒绝",
-            "您在商品「" + (goods != null ? goods.getTitle() : "") + "」的砍价请求已被拒绝"
+            "您在商品「" + (goods != null ? goods.getTitle() : "") + "」的砍价请求已被拒绝",
+            "bargain"
         );
         
         return bargain;

@@ -75,28 +75,43 @@ public class MessageServiceImpl implements MessageService {
         
         String content = renderTemplate(template.getContent(), variables);
         String title = renderTemplate(template.getTitle(), variables);
+        String pushType = template.getPushType();
+        if (pushType == null) {
+            pushType = "system";
+        }
         
-        return createMessageRecord(userId, templateCode, title, content);
+        return createMessageRecord(userId, templateCode, title, content, pushType);
     }
 
     @Override
     @Transactional
     public MessageRecord sendMessageDirect(Long userId, String title, String content) {
-        return createMessageRecord(userId, "DIRECT", title, content);
+        return createMessageRecord(userId, "DIRECT", title, content, "system");
     }
 
-    private MessageRecord createMessageRecord(Long userId, String templateCode, String title, String content) {
+    @Override
+    @Transactional
+    public MessageRecord sendMessageDirect(Long userId, String title, String content, String pushType) {
+        return createMessageRecord(userId, "DIRECT", title, content, pushType);
+    }
+
+    private MessageRecord createMessageRecord(Long userId, String templateCode, String title, String content, String pushType) {
         MessageRecord record = new MessageRecord();
         record.setUserId(userId);
         record.setTemplateCode(templateCode);
         record.setTitle(title);
         record.setContent(content);
         record.setStatus(0);
-        record.setPushType("system");
+        record.setPushType(pushType);
         record.setCreateTime(LocalDateTime.now());
         
         recordMapper.insert(record);
         return record;
+    }
+
+    // 保留旧方法的兼容性
+    private MessageRecord createMessageRecord(Long userId, String templateCode, String title, String content) {
+        return createMessageRecord(userId, templateCode, title, content, "system");
     }
 
     private String renderTemplate(String template, Map<String, Object> variables) {
