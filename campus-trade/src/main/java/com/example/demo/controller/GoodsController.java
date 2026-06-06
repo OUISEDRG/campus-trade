@@ -17,6 +17,17 @@ public class GoodsController {
     @Autowired
     private GoodsService goodsService;
 
+    @PostMapping("/add")
+    public Result addGoods(@RequestBody Goods goods) {
+        goods.setStatus(0);
+        boolean success = goodsService.save(goods);
+        if (success) {
+            return Result.success("太棒了！闲置发布成功！");
+        } else {
+            return Result.error("发布失败，请稍后再试哦~");
+        }
+    }
+
     @PostMapping("/publish")
     public Result publishGoods(@RequestBody Goods goods) {
         goods.setStatus(0);

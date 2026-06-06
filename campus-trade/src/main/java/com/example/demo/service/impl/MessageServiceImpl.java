@@ -75,7 +75,7 @@ public class MessageServiceImpl implements MessageService {
         
         String content = renderTemplate(template.getContent(), variables);
         String title = renderTemplate(template.getTitle(), variables);
-        String pushType = template.getPushType();
+        String pushType = template.getType();
         if (pushType == null) {
             pushType = "system";
         }
